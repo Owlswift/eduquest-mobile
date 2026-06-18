@@ -59,4 +59,9 @@ class AuthController extends Notifier<AuthState> {
       state = state.copyWith(loading: false, error: e.toString());
     }
   }
+
+  Future<void> logout() async {
+    await _storage.deleteToken();
+    state = const AuthState();
+  }
 }

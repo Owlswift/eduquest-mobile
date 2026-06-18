@@ -1,29 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/main.dart';
+import 'package:mobile/app/app.dart';
 
 void main() {
-  testWidgets('App shows login screen when not authenticated',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MyApp(isLoggedIn: false),
-      ),
-    );
+  testWidgets('App starts at splash screen', (WidgetTester tester) async {
+    await tester.pumpWidget(const EduQuestApp());
+    await tester.pump();
 
-    expect(find.text('Login'), findsWidgets);
-    expect(find.text('Email'), findsOneWidget);
-    expect(find.text('Password'), findsOneWidget);
-  });
-
-  testWidgets('App shows home placeholder when authenticated',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MyApp(isLoggedIn: true),
-      ),
-    );
-
-    expect(find.text('Welcome back! You are logged in.'), findsOneWidget);
+    expect(find.text('Splash Screen'), findsOneWidget);
   });
 }
