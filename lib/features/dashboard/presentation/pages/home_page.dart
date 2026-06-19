@@ -18,15 +18,24 @@ class HomePage extends ConsumerWidget {
     final dashboardState = ref.watch(dashboardControllerProvider);
     final user = dashboardState.user;
 
-    // Load user profile on first build
-    ref.read(dashboardControllerProvider.notifier).loadUserProfile();
+    // Load user profile only once when user is null and not loading
+    ref.listen(dashboardControllerProvider, (previous, next) {
+      if (previous?.user == null && next.user != null) {
+        // User data loaded successfully
+      }
+    });
+
+    // Only load if user is null and not already loading
+    if (user == null && !dashboardState.loading) {
+      Future.microtask(() => ref.read(dashboardControllerProvider.notifier).loadUserProfile());
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
       body: CustomScrollView(
         slivers: [
           // ── Header ──────────────────────────────────────────────────────────
-          SliverToBoxAdapter(child: _HomeHeader(user: user)),
+          SliverToBoxAdapter(child: _HomeHeader(user: user, loading: dashboardState.loading)),
 
           // ── Streak card ─────────────────────────────────────────────────────
           const SliverToBoxAdapter(
@@ -135,13 +144,14 @@ class HomePage extends ConsumerWidget {
 
 class _HomeHeader extends StatelessWidget {
   final Map<String, dynamic>? user;
+  final bool loading;
 
-  const _HomeHeader({this.user});
+  const _HomeHeader({this.user, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
     final userName = user?['fullName'] ?? 'Student';
-    final firstName = userName.split(' ').first;
+    final firstName = loading ? '...' : (userName.split(' ').first);
     final coins = user?['coins'] ?? 0;
     final xp = user?['xp'] ?? 0;
     final streak = user?['streak'] ?? 0;
