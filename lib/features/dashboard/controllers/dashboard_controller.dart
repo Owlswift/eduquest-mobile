@@ -42,12 +42,16 @@ class DashboardController extends Notifier<DashboardState> {
       final user = await _authService.getProfile();
       state = state.copyWith(loading: false, user: user);
     } on Exception catch (e) {
-      // If API fails, try to get user data from Google Sign-In as fallback
+      // If API fails, try to get user data from currently signed-in Google user
       try {
-        final googleUser = await _googleSignIn.authenticate(scopeHint: ['email', 'profile']);
-        final auth = googleUser.authentication;
+        // Initialize Google Sign-In to ensure currentUser is available
+        await _googleSignIn.initialize(
+          serverClientId: '108767173452-hdfi3kjhutv37somf60r50keo9kj66ju.apps.googleusercontent.com',
+        );
         
-        if (auth.idToken != null) {
+        final googleUser = _googleSignIn.currentUser;
+        
+        if (googleUser != null) {
           // Create a minimal user profile from Google data
           final fallbackUser = {
             'fullName': googleUser.displayName ?? 'User',
