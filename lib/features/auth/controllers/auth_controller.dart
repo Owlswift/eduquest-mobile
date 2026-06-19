@@ -38,7 +38,18 @@ class AuthController extends Notifier<AuthState> {
   final TokenStorage _storage = TokenStorage();
 
   @override
-  AuthState build() => const AuthState();
+  AuthState build() {
+    // Restore session on app startup
+    _restoreSession();
+    return const AuthState();
+  }
+
+  Future<void> _restoreSession() async {
+    final token = await _storage.getToken();
+    if (token != null) {
+      state = state.copyWith(token: token);
+    }
+  }
 
   // ─── Email/Password Login ──────────────────────────────────────────────────
 

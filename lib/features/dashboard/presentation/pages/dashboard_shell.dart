@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../controllers/dashboard_controller.dart';
+import '../../../auth/controllers/auth_controller.dart';
 import 'home_page.dart';
 import 'subjects_page.dart';
 import 'competitions_page.dart';
 import 'leaderboard_page.dart';
 import 'profile_page.dart';
 
-class DashboardShell extends StatefulWidget {
+class DashboardShell extends ConsumerStatefulWidget {
   const DashboardShell({super.key});
 
   @override
-  State<DashboardShell> createState() => _DashboardShellState();
+  ConsumerState<DashboardShell> createState() => _DashboardShellState();
 }
 
-class _DashboardShellState extends State<DashboardShell> {
+class _DashboardShellState extends ConsumerState<DashboardShell> {
   int _currentIndex = 0;
 
   final _pages = const [
@@ -25,6 +28,19 @@ class _DashboardShellState extends State<DashboardShell> {
     LeaderboardPage(),
     ProfilePage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final authState = ref.read(authControllerProvider);
+    if (authState.token != null) {
+      await ref.read(dashboardControllerProvider.notifier).loadUserProfile();
+    }
+  }
 
   void _onTap(int index) {
     HapticFeedback.lightImpact();
