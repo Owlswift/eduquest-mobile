@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../auth/services/auth_service.dart';
 
 class DashboardState {
@@ -30,6 +31,7 @@ final dashboardControllerProvider =
 
 class DashboardController extends Notifier<DashboardState> {
   final AuthService _authService = AuthService();
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   @override
   DashboardState build() => const DashboardState();
@@ -40,7 +42,28 @@ class DashboardController extends Notifier<DashboardState> {
       final user = await _authService.getProfile();
       state = state.copyWith(loading: false, user: user);
     } on Exception catch (e) {
-      state = state.copyWith(loading: false, error: e.toString());
+      // If API fails, try to get user data from Google Sign-In as fallback
+      try {
+        final googleUser = await _googleSignIn.authenticate(scopeHint: ['email', 'profile']);
+        final auth = googleUser.authentication;
+        
+        if (auth.idToken != null) {
+          // Create a minimal user profile from Google data
+          final fallbackUser = {
+            'fullName': googleUser.displayName ?? 'User',
+            'email': googleUser.email,
+            'coins': 0,
+            'xp': 0,
+            'streak': 0,
+          };
+          state = state.copyWith(loading: false, user: fallbackUser);
+        } else {
+          state = state.copyWith(loading: false, error: e.toString());
+        }
+      } catch (googleError) {
+        // Both API and Google fallback failed
+        state = state.copyWith(loading: false, error: e.toString());
+      }
     }
   }
 }
