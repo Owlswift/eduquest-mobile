@@ -32,7 +32,7 @@ class AppScaffold extends StatelessWidget {
               actions: actions,
               elevation: 0,
               backgroundColor: Colors.transparent,
-              foregroundColor: AppColors.textPrimary,
+              foregroundColor: AppColors.text,
             )
           : null,
       body: SafeArea(
