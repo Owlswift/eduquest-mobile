@@ -6,12 +6,14 @@ class AuthState {
   final bool loading;
   final bool googleLoading;
   final String? token;
+  final Map<String, dynamic>? user;
   final String? error;
 
   const AuthState({
     this.loading = false,
     this.googleLoading = false,
     this.token,
+    this.user,
     this.error,
   });
 
@@ -19,12 +21,14 @@ class AuthState {
     bool? loading,
     bool? googleLoading,
     String? token,
+    Map<String, dynamic>? user,
     String? error,
   }) {
     return AuthState(
       loading: loading ?? this.loading,
       googleLoading: googleLoading ?? this.googleLoading,
       token: token ?? this.token,
+      user: user ?? this.user,
       error: error ?? this.error,
     );
   }
@@ -86,7 +90,19 @@ class AuthController extends Notifier<AuthState> {
     try {
       final token = await _service.googleLogin();
       await _storage.saveToken(token);
-      state = state.copyWith(googleLoading: false, token: token);
+      
+      // Get Google user data for profile from stored user
+      final googleUser = _service.currentGoogleUser;
+      if (googleUser != null) {
+        final userData = {
+          'fullName': googleUser.displayName ?? 'User',
+          'email': googleUser.email,
+          'avatarUrl': googleUser.photoUrl ?? '',
+        };
+        state = state.copyWith(googleLoading: false, token: token, user: userData);
+      } else {
+        state = state.copyWith(googleLoading: false, token: token);
+      }
     } on Exception catch (e) {
       final message = _parseError(e);
       state = state.copyWith(googleLoading: false, error: message);

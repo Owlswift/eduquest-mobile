@@ -6,7 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_shadows.dart';
 import '../../../../core/constants/app_radius.dart';
-import '../../controllers/dashboard_controller.dart';
+import '../../../auth/controllers/auth_controller.dart';
 import '../../models/dashboard_models.dart';
 import '../../data/mock_data.dart';
 
@@ -15,27 +15,27 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dashboardState = ref.watch(dashboardControllerProvider);
-    final user = dashboardState.user;
+    final authState = ref.watch(authControllerProvider);
+    final user = authState.user;
 
-    // Load user profile only once when user is null and not loading
-    ref.listen(dashboardControllerProvider, (previous, next) {
-      if (previous?.user == null && next.user != null) {
-        // User data loaded successfully
-      }
-    });
-
-    // Only load if user is null and not already loading
-    if (user == null && !dashboardState.loading) {
-      Future.microtask(() => ref.read(dashboardControllerProvider.notifier).loadUserProfile());
-    }
+    final userName = user?['fullName'] ?? 'Student';
+    final firstName = userName.split(' ').first;
+    final coins = user?['coins'] ?? 0;
+    final xp = user?['xp'] ?? 0;
+    final streak = user?['streak'] ?? 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
       body: CustomScrollView(
         slivers: [
           // ── Header ──────────────────────────────────────────────────────────
-          SliverToBoxAdapter(child: _HomeHeader(user: user, loading: dashboardState.loading)),
+          SliverToBoxAdapter(child: _HomeHeader(
+            userName: userName,
+            firstName: firstName,
+            coins: coins,
+            xp: xp,
+            streak: streak,
+          )),
 
           // ── Streak card ─────────────────────────────────────────────────────
           const SliverToBoxAdapter(
@@ -143,19 +143,22 @@ class HomePage extends ConsumerWidget {
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 class _HomeHeader extends StatelessWidget {
-  final Map<String, dynamic>? user;
-  final bool loading;
+  final String userName;
+  final String firstName;
+  final int coins;
+  final int xp;
+  final int streak;
 
-  const _HomeHeader({this.user, this.loading = false});
+  const _HomeHeader({
+    required this.userName,
+    required this.firstName,
+    required this.coins,
+    required this.xp,
+    required this.streak,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final userName = user?['fullName'] ?? 'Student';
-    final firstName = loading ? '...' : (userName.split(' ').first);
-    final coins = user?['coins'] ?? 0;
-    final xp = user?['xp'] ?? 0;
-    final streak = user?['streak'] ?? 0;
-
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(

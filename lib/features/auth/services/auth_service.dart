@@ -6,6 +6,10 @@ class AuthService {
   final _dio = DioClient().dio;
 
   final _googleSignIn = GoogleSignIn.instance;
+  
+  GoogleSignInAccount? _currentGoogleUser;
+  
+  GoogleSignInAccount? get currentGoogleUser => _currentGoogleUser;
 
   // ─── Email/Password Login ───────────────────────────────────────────────────
 
@@ -42,6 +46,9 @@ class AuthService {
     final googleUser = await _googleSignIn.authenticate(
       scopeHint: ['email', 'profile']
     );
+
+    // Store the Google user for later use
+    _currentGoogleUser = googleUser;
 
     // 2. Get authentication tokens
     final googleAuth = googleUser.authentication;
