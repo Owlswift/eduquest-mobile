@@ -1,4 +1,4 @@
-package come.eduquest.mobile
+package com.eduquest.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

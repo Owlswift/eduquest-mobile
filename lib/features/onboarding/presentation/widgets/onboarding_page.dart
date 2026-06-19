@@ -66,14 +66,14 @@ class _OnboardingPageState extends State<OnboardingPage>
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
             children: [
-              const Spacer(),
+              const Spacer(flex: 3),
 
               //------------------------------------------------
               // Illustration Section
               //------------------------------------------------
 
               SizedBox(
-                height: 340,
+                height: 360,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
@@ -113,19 +113,26 @@ class _OnboardingPageState extends State<OnboardingPage>
                       ),
                     ),
 
-                    Hero(
+Hero(
                       tag: widget.page.title,
-                      child: Image.asset(
-                        widget.page.illustration,
-                        height: 270,
-                        fit: BoxFit.contain,
+                      child: Transform.scale(
+                        scale: 2,
+                        child: Image.asset(
+                        widget.page.illustration),
                       ),
                     ),
+                    // Hero(
+                    //   tag: widget.page.title,
+                    //   child: Image.asset(
+                    //     widget.page.illustration,
+                    //     height: 270,
+                    //     fit: BoxFit.contain,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 22),
 
               //------------------------------------------------
               // Round Icon Badge

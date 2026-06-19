@@ -4,22 +4,26 @@ import '../../../core/storage/token_storage.dart';
 
 class AuthState {
   final bool loading;
+  final bool googleLoading;
   final String? token;
   final String? error;
 
   const AuthState({
     this.loading = false,
+    this.googleLoading = false,
     this.token,
     this.error,
   });
 
   AuthState copyWith({
     bool? loading,
+    bool? googleLoading,
     String? token,
     String? error,
   }) {
     return AuthState(
       loading: loading ?? this.loading,
+      googleLoading: googleLoading ?? this.googleLoading,
       token: token ?? this.token,
       error: error ?? this.error,
     );
@@ -36,32 +40,86 @@ class AuthController extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
 
+  // ─── Email/Password Login ──────────────────────────────────────────────────
+
   Future<void> login(String email, String password) async {
     state = state.copyWith(loading: true, error: null);
-
     try {
       final token = await _service.login(email, password);
       await _storage.saveToken(token);
       state = state.copyWith(loading: false, token: token);
-    } catch (e) {
-      state = state.copyWith(loading: false, error: e.toString());
+    } on Exception catch (e) {
+      final message = _parseError(e);
+      state = state.copyWith(loading: false, error: message);
     }
   }
 
+  // ─── Email/Password Register ───────────────────────────────────────────────
+
   Future<void> register(Map<String, dynamic> data) async {
     state = state.copyWith(loading: true, error: null);
-
     try {
       final token = await _service.register(data);
       await _storage.saveToken(token);
       state = state.copyWith(loading: false, token: token);
-    } catch (e) {
-      state = state.copyWith(loading: false, error: e.toString());
+    } on Exception catch (e) {
+      final message = _parseError(e);
+      state = state.copyWith(loading: false, error: message);
     }
   }
 
+  // ─── Google Login ──────────────────────────────────────────────────────────
+
+  Future<void> googleLogin() async {
+    state = state.copyWith(googleLoading: true, error: null);
+    try {
+      final token = await _service.googleLogin();
+      await _storage.saveToken(token);
+      state = state.copyWith(googleLoading: false, token: token);
+    } on Exception catch (e) {
+      final message = _parseError(e);
+      state = state.copyWith(googleLoading: false, error: message);
+    }
+  }
+
+  // ─── Logout ────────────────────────────────────────────────────────────────
+
   Future<void> logout() async {
+    await _service.googleSignOut(); // also clears Google session
     await _storage.deleteToken();
     state = const AuthState();
+  }
+
+  // ─── Error parser ──────────────────────────────────────────────────────────
+
+  String _parseError(Exception e) {
+    final raw = e.toString();
+
+    // Dio errors from backend
+    if (raw.contains('401') || raw.contains('Unauthorized')) {
+      return 'Invalid email or password.';
+    }
+    if (raw.contains('404')) {
+      return 'Account not found.';
+    }
+    if (raw.contains('409') || raw.contains('Conflict')) {
+      return 'An account with this email already exists.';
+    }
+    if (raw.contains('Google sign-in cancelled')) {
+      return 'Google sign-in was cancelled.';
+    }
+    if (raw.contains('Failed to get Google ID token')) {
+      return 'Could not get Google credentials. Try again.';
+    }
+    if (raw.contains('SocketException') ||
+        raw.contains('Connection refused') ||
+        raw.contains('Network')) {
+      return 'No internet connection. Please check your network.';
+    }
+    if (raw.contains('timeout') || raw.contains('Timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+
+    return 'Something went wrong. Please try again.';
   }
 }
