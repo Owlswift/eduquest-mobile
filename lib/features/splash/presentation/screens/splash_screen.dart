@@ -1,33 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../auth/controllers/auth_controller.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Check auth state and navigate accordingly
+    ref.listen<AuthState>(authControllerProvider, (previous, next) {
+      if (next.token != null) {
+        // User is logged in, go to dashboard
+        context.go('/home');
+      } else {
+        // User is not logged in, go to onboarding
+        context.go('/onboarding');
+      }
+    });
 
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _navigateToOnboarding();
-  }
+    // Trigger navigation after splash duration
+    Future.delayed(const Duration(seconds: AppConstants.splashDuration), () {
+      final authState = ref.read(authControllerProvider);
+      if (authState.token != null) {
+        context.go('/home');
+      } else {
+        context.go('/onboarding');
+      }
+    });
 
-  void _navigateToOnboarding() async {
-    await Future.delayed(const Duration(seconds: AppConstants.splashDuration));
-    if (mounted) {
-      context.go('/onboarding');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
