@@ -57,6 +57,13 @@ class AuthService {
     return response.data['accessToken'];
   }
 
+  // ─── Get User Profile ────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getProfile() async {
+    final response = await _dio.get('/users/me');
+    return response.data;
+  }
+
   // ─── Sign out from Google ───────────────────────────────────────────────────
 
   Future<void> googleSignOut() async {

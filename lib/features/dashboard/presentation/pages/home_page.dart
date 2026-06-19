@@ -1,24 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_shadows.dart';
 import '../../../../core/constants/app_radius.dart';
-import '../../data/mock_data.dart';
+import '../../controllers/dashboard_controller.dart';
 import '../../models/dashboard_models.dart';
+import '../../data/mock_data.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dashboardState = ref.watch(dashboardControllerProvider);
+    final user = dashboardState.user;
+
+    // Load user profile on first build
+    ref.read(dashboardControllerProvider.notifier).loadUserProfile();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
       body: CustomScrollView(
         slivers: [
           // ── Header ──────────────────────────────────────────────────────────
-          SliverToBoxAdapter(child: _HomeHeader()),
+          SliverToBoxAdapter(child: _HomeHeader(user: user)),
 
           // ── Streak card ─────────────────────────────────────────────────────
           const SliverToBoxAdapter(
@@ -55,7 +63,14 @@ class HomePage extends StatelessWidget {
           const SliverToBoxAdapter(child: Gap(12)),
 
           SliverToBoxAdapter(
-            child: _ContinueLearningCard(subject: mockSubjects.first),
+            child: _ContinueLearningCard(subject: const SubjectModel(
+              id: 'math',
+              name: 'Mathematics',
+              icon: Icons.functions_rounded,
+              color: Color(0xFF2563EB),
+              currentTopic: 'Algebra • Linear Equations',
+              progress: 0.72,
+            )),
           ),
 
           const SliverToBoxAdapter(child: Gap(24)),
@@ -119,8 +134,18 @@ class HomePage extends StatelessWidget {
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 class _HomeHeader extends StatelessWidget {
+  final Map<String, dynamic>? user;
+
+  const _HomeHeader({this.user});
+
   @override
   Widget build(BuildContext context) {
+    final userName = user?['fullName'] ?? 'Student';
+    final firstName = userName.split(' ').first;
+    final coins = user?['coins'] ?? 0;
+    final xp = user?['xp'] ?? 0;
+    final streak = user?['streak'] ?? 0;
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -148,7 +173,7 @@ class _HomeHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Hello, ${mockUser.name.split(' ').first} 👋',
+                          'Hello, $firstName 👋',
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
@@ -205,7 +230,7 @@ class _HomeHeader extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        mockUser.name.split(' ').map((e) => e[0]).take(2).join(),
+                        userName.split(' ').map((e) => e[0]).take(2).join(),
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -224,19 +249,19 @@ class _HomeHeader extends StatelessWidget {
                 children: [
                   _HeaderChip(
                     icon: Icons.monetization_on_rounded,
-                    label: '${mockUser.coins}',
+                    label: '$coins',
                     color: const Color(0xFFFBBF24),
                   ),
                   const SizedBox(width: 10),
                   _HeaderChip(
                     icon: Icons.star_rounded,
-                    label: '${mockUser.xp} XP',
+                    label: '$xp XP',
                     color: const Color(0xFF34D399),
                   ),
                   const SizedBox(width: 10),
                   _HeaderChip(
                     icon: Icons.local_fire_department_rounded,
-                    label: '${mockUser.streak} Day Streak',
+                    label: '$streak Day Streak',
                     color: const Color(0xFFFB923C),
                   ),
                 ],
