@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
 import '../../../core/storage/token_storage.dart';
 
+// Add debug import
+import 'dart:developer' as developer;
+
 class AuthState {
   final bool loading;
   final bool googleLoading;
@@ -85,16 +88,21 @@ class AuthController extends Notifier<AuthState> {
   Future<void> register(Map<String, dynamic> data) async {
     state = state.copyWith(loading: true, error: null);
     try {
+      developer.log('Starting registration...');
       final token = await _service.register(data);
+      developer.log('Registration successful, token received');
       await _storage.saveToken(token);
+      developer.log('Token saved');
       final user = await _service.getProfile();
-      if (user == null) {
+      developer.log('Profile fetched: $user');
+      if (user == null || user.isEmpty) {
         await logout();
         state = state.copyWith(loading: false, error: 'Failed to load user profile');
         return;
       }
       state = state.copyWith(loading: false, token: token, user: user);
     } on Exception catch (e) {
+      developer.log('Registration error: $e');
       final message = _parseError(e);
       state = state.copyWith(loading: false, error: message);
     }

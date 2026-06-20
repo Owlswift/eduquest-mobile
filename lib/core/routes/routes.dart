@@ -8,6 +8,7 @@ class AppRoutes {
   static const register = '/register';
   static const forgotPassword = '/forgot-password';
   static const otpVerification = '/otp-verification';
+  static const postRegistration = '/post-registration';
 
   static const home = '/home';
   static const subjects = '/subjects';

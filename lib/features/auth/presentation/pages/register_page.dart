@@ -88,7 +88,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       await Future.delayed(const Duration(seconds: 3));
       if (!mounted) return;
       ref.read(registerProvider.notifier).reset();
-      context.go(AppRoutes.home);
+      context.go(AppRoutes.postRegistration);
     }
   }
 

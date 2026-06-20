@@ -6,6 +6,7 @@ import '../../features/auth/presentation/pages/otp_verification_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_shell.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/post_registration/presentation/pages/post_registration_flow.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import 'routes.dart';
 
@@ -41,6 +42,10 @@ class AppRouter {
           final email = state.uri.queryParameters['email'] ?? '';
           return OtpVerificationPage(email: email);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.postRegistration,
+        builder: (context, state) => const PostRegistrationFlow(),
       ),
       GoRoute(
         path: AppRoutes.home,
