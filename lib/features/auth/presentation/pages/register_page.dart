@@ -29,6 +29,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _showSuccess = false;
 
   @override
   void dispose() {
@@ -72,8 +73,20 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final formData = ref.read(registerProvider).toJson();
     await ref.read(authControllerProvider.notifier).register(formData);
 
+    if (!mounted) return;
     final auth = ref.read(authControllerProvider);
-    if (auth.token != null && mounted) {
+    if (auth.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error!),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (auth.token != null) {
+      setState(() => _showSuccess = true);
+      await Future.delayed(const Duration(seconds: 3));
+      if (!mounted) return;
       ref.read(registerProvider.notifier).reset();
       context.go(AppRoutes.home);
     }
@@ -83,6 +96,50 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Widget build(BuildContext context) {
     final form = ref.watch(registerProvider);
     final auth = ref.watch(authControllerProvider);
+
+    if (_showSuccess) {
+      return AppScaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_rounded,
+                  size: 60,
+                  color: AppColors.success,
+                ),
+              ),
+              const Gap(24),
+              Text(
+                'Congratulations!',
+                style: AppTextStyles.title.copyWith(fontSize: 28),
+              ),
+              const Gap(12),
+              Text(
+                'We are setting you up...',
+                style: AppTextStyles.body.copyWith(fontSize: 16),
+              ),
+              const Gap(32),
+              const SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return AppScaffold(
       body: Column(
@@ -233,6 +290,7 @@ class _Step1 extends ConsumerWidget {
             controller: nameController,
             keyboardType: TextInputType.name,
             prefixIcon: const Icon(Icons.person_outline, color: AppColors.subtitle),
+            onChanged: notifier.setFullName,
           ),
           const Gap(14),
 
@@ -241,6 +299,7 @@ class _Step1 extends ConsumerWidget {
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
             prefixIcon: const Icon(Icons.email_outlined, color: AppColors.subtitle),
+            onChanged: notifier.setEmail,
           ),
           const Gap(14),
 
@@ -279,7 +338,10 @@ class _Step1 extends ConsumerWidget {
           ),
           const Gap(14),
 
-          PasswordField(controller: passwordController),
+          PasswordField(
+            controller: passwordController,
+            onChanged: notifier.setPassword,
+          ),
           const Gap(12),
 
           // Live password checklist
@@ -420,16 +482,11 @@ class _Step3 extends ConsumerWidget {
 
   const _Step3({required this.onSubmit, required this.loading});
 
-  static const _interests = [
-    ('Programming', Icons.code_rounded),
-    ('Artificial Intelligence', Icons.psychology_rounded),
-    ('Blockchain', Icons.link_rounded),
-    ('Cybersecurity', Icons.security_rounded),
-    ('Design', Icons.palette_rounded),
-    ('Business', Icons.bar_chart_rounded),
-    ('Data Science', Icons.storage_rounded),
-    ('Marketing', Icons.campaign_rounded),
-    ('Other', Icons.more_horiz_rounded),
+  static const _exams = [
+    ('WAEC', Icons.school_rounded),
+    ('NECO', Icons.menu_book_rounded),
+    ('JAMB', Icons.assignment_rounded),
+    ('UTME', Icons.emoji_events_rounded),
   ];
 
   @override
@@ -450,10 +507,10 @@ class _Step3 extends ConsumerWidget {
             ),
           ),
           const Gap(8),
-          Text('Select Your\nInterests', style: AppTextStyles.title),
+          Text('Select Your\nExams', style: AppTextStyles.title),
           const Gap(4),
           Text(
-            'Choose the topics you want to learn',
+            'Choose the exams you are interested in',
             style: AppTextStyles.body.copyWith(fontSize: 14),
           ),
           const Gap(24),
@@ -461,7 +518,7 @@ class _Step3 extends ConsumerWidget {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _interests.length,
+            itemCount: _exams.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               crossAxisSpacing: 12,
@@ -469,7 +526,7 @@ class _Step3 extends ConsumerWidget {
               childAspectRatio: 0.95,
             ),
             itemBuilder: (context, index) {
-              final (label, icon) = _interests[index];
+              final (label, icon) = _exams[index];
               final selected = form.interests.contains(label);
 
               return GestureDetector(

@@ -18,8 +18,14 @@ class HomePage extends ConsumerWidget {
     final authState = ref.watch(authControllerProvider);
     final user = authState.user;
 
+    // Debug: print user profile data
+    debugPrint('HomePage user data: $user');
+
     final userName = user?['fullName'] ?? 'Student';
     final firstName = userName.split(' ').first;
+    final capitalizedFirstName = firstName.isNotEmpty
+        ? firstName[0].toUpperCase() + firstName.substring(1)
+        : firstName;
     final coins = user?['coins'] ?? 0;
     final xp = user?['xp'] ?? 0;
     final streak = user?['streak'] ?? 0;
@@ -31,7 +37,7 @@ class HomePage extends ConsumerWidget {
           // ── Header ──────────────────────────────────────────────────────────
           SliverToBoxAdapter(child: _HomeHeader(
             userName: userName,
-            firstName: firstName,
+            firstName: capitalizedFirstName,
             coins: coins,
             xp: xp,
             streak: streak,

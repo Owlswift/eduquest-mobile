@@ -32,13 +32,20 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
   @override
   void initState() {
     super.initState();
-    _loadUserProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUserProfile();
+    });
   }
 
   Future<void> _loadUserProfile() async {
     final authState = ref.read(authControllerProvider);
     if (authState.token != null) {
       await ref.read(dashboardControllerProvider.notifier).loadUserProfile();
+      final updatedAuthState = ref.read(authControllerProvider);
+      final dashboardState = ref.read(dashboardControllerProvider);
+      if (dashboardState.user == null && updatedAuthState.user == null) {
+        await ref.read(authControllerProvider.notifier).logout();
+      }
     }
   }
 

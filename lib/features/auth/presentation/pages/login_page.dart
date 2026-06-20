@@ -44,7 +44,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     if (!mounted) return;
     final auth = ref.read(authControllerProvider);
-    if (auth.token != null) {
+    if (auth.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error!),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (auth.token != null) {
       context.go(AppRoutes.home);
     }
   }
@@ -129,25 +137,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
               const Gap(28),
 
-              // ── Email ───────────────────────────────────────────────────────
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: 'Email or Username',
-                  prefixIcon: const Icon(Icons.email_outlined,
-                      color: AppColors.subtitle),
-                ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!v.contains('@') && !v.contains('.')) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
-              ),
+               // ── Email/Username ───────────────────────────────────────────────
+               TextFormField(
+                 controller: _emailController,
+                 keyboardType: TextInputType.emailAddress,
+                 decoration: InputDecoration(
+                   hintText: 'Email or Username',
+                   prefixIcon: const Icon(Icons.email_outlined,
+                       color: AppColors.subtitle),
+                 ),
+                 validator: (v) {
+                   if (v == null || v.trim().isEmpty) {
+                     return 'Please enter your email or username';
+                   }
+                   return null;
+                 },
+               ),
 
               const Gap(16),
 

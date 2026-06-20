@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_shadows.dart';
 import '../../../../core/constants/app_radius.dart';
+import '../../../../core/routes/routes.dart';
 import '../../data/mock_data.dart';
 import '../../models/dashboard_models.dart';
+import '../../../auth/controllers/auth_controller.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -121,7 +125,7 @@ class _ProfileHeader extends StatelessWidget {
                       child: Text(
                         mockUser.name
                             .split(' ')
-                            .map((e) => e[0])
+                            .map((e) => e[0].toUpperCase())
                             .take(2)
                             .join(),
                         style: const TextStyle(
@@ -154,7 +158,10 @@ class _ProfileHeader extends StatelessWidget {
               const Gap(12),
 
               Text(
-                mockUser.name,
+                mockUser.name
+                    .split(' ')
+                    .map((e) => e[0].toUpperCase() + e.substring(1))
+                    .join(' '),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -562,9 +569,11 @@ class _MiniStat extends StatelessWidget {
 
 // ─── Profile Menu ─────────────────────────────────────────────────────────────
 
-class _ProfileMenu extends StatelessWidget {
+class _ProfileMenu extends ConsumerWidget {
+  const _ProfileMenu();
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final items = [
       (Icons.edit_rounded, 'Edit Profile', AppColors.primary),
       (Icons.bar_chart_rounded, 'My Stats', const Color(0xFF059669)),
@@ -572,6 +581,7 @@ class _ProfileMenu extends StatelessWidget {
       (Icons.workspace_premium_rounded, 'My Certificates',
           const Color(0xFF7C3AED)),
       (Icons.settings_rounded, 'Settings', AppColors.subtitle),
+      (Icons.logout_rounded, 'Logout', AppColors.danger),
     ];
 
     return Container(
@@ -588,29 +598,64 @@ class _ProfileMenu extends StatelessWidget {
 
           return Column(
             children: [
-              ListTile(
-                leading: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.large),
+                child: ListTile(
+                  leading: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: color, size: 20),
                   ),
-                  child: Icon(icon, color: color, size: 20),
-                ),
-                title: Text(
-                  label,
-                  style: AppTextStyles.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.text,
-                    fontSize: 14,
+                  title: Text(
+                    label,
+                    style: AppTextStyles.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: label == 'Logout' ? AppColors.danger : AppColors.text,
+                      fontSize: 14,
+                    ),
                   ),
+                  trailing: label == 'Logout'
+                      ? const Icon(
+                          Icons.logout_rounded,
+                          color: AppColors.danger,
+                        )
+                      : const Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.subtitle,
+                        ),
+                  onTap: label == 'Logout'
+                      ? () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Logout'),
+                              content: const Text('Are you sure you want to logout?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => ctx.pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => ctx.pop(true),
+                                  child: const Text('Logout'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmed == true && context.mounted) {
+                            await ref.read(authControllerProvider.notifier).logout();
+                            if (context.mounted) {
+                              context.go(AppRoutes.login);
+                            }
+                          }
+                        }
+                      : () {},
                 ),
-                trailing: const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.subtitle,
-                ),
-                onTap: () {},
               ),
               if (!isLast)
                 Divider(

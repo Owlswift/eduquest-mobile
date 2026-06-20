@@ -73,7 +73,7 @@ class RegisterFormState {
   bool get hasUppercase => password.contains(RegExp(r'[A-Z]'));
 
   Map<String, dynamic> toJson() => {
-        'fullName': fullName,
+        'name': fullName,
         'email': email,
         'phone': '+234$phone',
         'password': password,

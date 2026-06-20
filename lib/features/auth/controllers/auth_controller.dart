@@ -51,7 +51,12 @@ class AuthController extends Notifier<AuthState> {
   Future<void> _restoreSession() async {
     final token = await _storage.getToken();
     if (token != null) {
-      state = state.copyWith(token: token);
+      try {
+        final user = await _service.getProfile();
+        state = state.copyWith(token: token, user: user);
+      } catch (e) {
+        state = state.copyWith(token: token);
+      }
     }
   }
 
@@ -62,7 +67,13 @@ class AuthController extends Notifier<AuthState> {
     try {
       final token = await _service.login(email, password);
       await _storage.saveToken(token);
-      state = state.copyWith(loading: false, token: token);
+      final user = await _service.getProfile();
+      if (user == null) {
+        await logout();
+        state = state.copyWith(loading: false, error: 'Failed to load user profile');
+        return;
+      }
+      state = state.copyWith(loading: false, token: token, user: user);
     } on Exception catch (e) {
       final message = _parseError(e);
       state = state.copyWith(loading: false, error: message);
@@ -76,7 +87,13 @@ class AuthController extends Notifier<AuthState> {
     try {
       final token = await _service.register(data);
       await _storage.saveToken(token);
-      state = state.copyWith(loading: false, token: token);
+      final user = await _service.getProfile();
+      if (user == null) {
+        await logout();
+        state = state.copyWith(loading: false, error: 'Failed to load user profile');
+        return;
+      }
+      state = state.copyWith(loading: false, token: token, user: user);
     } on Exception catch (e) {
       final message = _parseError(e);
       state = state.copyWith(loading: false, error: message);
@@ -90,19 +107,13 @@ class AuthController extends Notifier<AuthState> {
     try {
       final token = await _service.googleLogin();
       await _storage.saveToken(token);
-      
-      // Get Google user data for profile from stored user
-      final googleUser = _service.currentGoogleUser;
-      if (googleUser != null) {
-        final userData = {
-          'fullName': googleUser.displayName ?? 'User',
-          'email': googleUser.email,
-          'avatarUrl': googleUser.photoUrl ?? '',
-        };
-        state = state.copyWith(googleLoading: false, token: token, user: userData);
-      } else {
-        state = state.copyWith(googleLoading: false, token: token);
+      final user = await _service.getProfile();
+      if (user == null) {
+        await logout();
+        state = state.copyWith(googleLoading: false, error: 'Failed to load user profile');
+        return;
       }
+      state = state.copyWith(googleLoading: false, token: token, user: user);
     } on Exception catch (e) {
       final message = _parseError(e);
       state = state.copyWith(googleLoading: false, error: message);
