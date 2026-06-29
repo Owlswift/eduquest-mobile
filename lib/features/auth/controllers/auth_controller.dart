@@ -104,6 +104,22 @@ class AuthController extends Notifier<AuthState> {
     } on Exception catch (e) {
       developer.log('Registration error: $e');
       final message = _parseError(e);
+      
+      // If user already exists, automatically log them in
+      if (message.contains('already exists')) {
+        developer.log('User already exists, attempting auto-login...');
+        try {
+          final email = data['email'];
+          final password = data['password'];
+          if (email != null && password != null) {
+            await login(email, password);
+            return;
+          }
+        } catch (loginError) {
+          developer.log('Auto-login failed: $loginError');
+        }
+      }
+      
       state = state.copyWith(loading: false, error: message);
     }
   }
