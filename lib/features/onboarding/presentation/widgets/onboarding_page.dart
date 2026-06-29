@@ -113,7 +113,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                       ),
                     ),
 
-Hero(
+                    Hero(
                       tag: widget.page.title,
                       child: Transform.scale(
                         scale: 2,

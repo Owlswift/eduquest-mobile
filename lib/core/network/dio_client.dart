@@ -11,7 +11,7 @@ class DioClient {
   DioClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: "http://192.168.100.159:3000",
+        baseUrl: "http://192.168.100.159:3000/api",
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         headers: {
@@ -19,6 +19,20 @@ class DioClient {
         },
       ),
     );
+
+    // Add logging interceptor
+    dio.interceptors.add(LogInterceptor(
+      request: true,
+      requestHeader: true,
+      requestBody: true,
+      responseHeader: true,
+      responseBody: true,
+      error: true,
+      logPrint: (obj) {
+        // ignore: avoid_print
+        print('🌐 API: $obj');
+      },
+    ));
 
     // Add token interceptor
     dio.interceptors.add(InterceptorsWrapper(

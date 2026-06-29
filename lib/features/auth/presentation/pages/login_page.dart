@@ -65,7 +65,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (!mounted) return;
     final auth = ref.read(authControllerProvider);
     if (auth.token != null) {
-      context.go(AppRoutes.home);
+      context.go(AppRoutes.postRegistration);
     }
   }
 

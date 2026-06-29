@@ -29,7 +29,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _showSuccess = false;
 
   @override
   void dispose() {
@@ -84,9 +83,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         ),
       );
     } else if (auth.token != null) {
-      setState(() => _showSuccess = true);
-      await Future.delayed(const Duration(seconds: 3));
-      if (!mounted) return;
       ref.read(registerProvider.notifier).reset();
       context.go(AppRoutes.postRegistration);
     }
@@ -96,50 +92,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Widget build(BuildContext context) {
     final form = ref.watch(registerProvider);
     final auth = ref.watch(authControllerProvider);
-
-    if (_showSuccess) {
-      return AppScaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check_rounded,
-                  size: 60,
-                  color: AppColors.success,
-                ),
-              ),
-              const Gap(24),
-              Text(
-                'Congratulations!',
-                style: AppTextStyles.title.copyWith(fontSize: 28),
-              ),
-              const Gap(12),
-              Text(
-                'We are setting you up...',
-                style: AppTextStyles.body.copyWith(fontSize: 16),
-              ),
-              const Gap(32),
-              const SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
 
     return AppScaffold(
       body: Column(

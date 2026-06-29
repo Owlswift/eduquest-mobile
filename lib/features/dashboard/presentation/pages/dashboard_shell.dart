@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../controllers/dashboard_controller.dart';
 import '../../../auth/controllers/auth_controller.dart';
-import 'home_page.dart';
+import 'dashboard_page.dart';
 import 'subjects_page.dart';
 import 'competitions_page.dart';
 import 'leaderboard_page.dart';
@@ -22,7 +22,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
   int _currentIndex = 0;
 
   final _pages = const [
-    HomePage(),
+    DashboardPage(),
     SubjectsPage(),
     CompetitionsPage(),
     LeaderboardPage(),
@@ -94,7 +94,7 @@ class _EduQuestNavBar extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -121,7 +121,7 @@ class _EduQuestNavBar extends StatelessWidget {
                             horizontal: 16, vertical: 6),
                         decoration: BoxDecoration(
                           color: isActive
-                              ? AppColors.primary.withOpacity(0.12)
+                              ? AppColors.primary.withAlpha(30)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(20),
                         ),
