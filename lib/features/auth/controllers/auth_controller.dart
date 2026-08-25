@@ -26,13 +26,14 @@ class AuthState {
     String? token,
     Map<String, dynamic>? user,
     String? error,
+    bool clearError = false,
   }) {
     return AuthState(
       loading: loading ?? this.loading,
       googleLoading: googleLoading ?? this.googleLoading,
       token: token ?? this.token,
       user: user ?? this.user,
-      error: error ?? this.error,
+      error: clearError ? null : (error ?? this.error),
     );
   }
 }
@@ -66,7 +67,7 @@ class AuthController extends Notifier<AuthState> {
   // ─── Email/Password Login ──────────────────────────────────────────────────
 
   Future<void> login(String email, String password) async {
-    state = state.copyWith(loading: true, error: null);
+    state = state.copyWith(loading: true, clearError: true);
     try {
       final token = await _service.login(email, password);
       await _storage.saveToken(token);
@@ -76,7 +77,7 @@ class AuthController extends Notifier<AuthState> {
         state = state.copyWith(loading: false, error: 'Failed to load user profile');
         return;
       }
-      state = state.copyWith(loading: false, token: token, user: user);
+      state = state.copyWith(loading: false, token: token, user: user, clearError: true);
     } on Exception catch (e) {
       final message = _parseError(e);
       state = state.copyWith(loading: false, error: message);
@@ -86,7 +87,7 @@ class AuthController extends Notifier<AuthState> {
   // ─── Email/Password Register ───────────────────────────────────────────────
 
   Future<void> register(Map<String, dynamic> data) async {
-    state = state.copyWith(loading: true, error: null);
+    state = state.copyWith(loading: true, clearError: true);
     try {
       developer.log('Starting registration...');
       final token = await _service.register(data);
@@ -100,7 +101,7 @@ class AuthController extends Notifier<AuthState> {
         state = state.copyWith(loading: false, error: 'Failed to load user profile');
         return;
       }
-      state = state.copyWith(loading: false, token: token, user: user);
+      state = state.copyWith(loading: false, token: token, user: user, clearError: true);
     } on Exception catch (e) {
       developer.log('Registration error: $e');
       final message = _parseError(e);
@@ -126,8 +127,8 @@ class AuthController extends Notifier<AuthState> {
 
   // ─── Google Login ──────────────────────────────────────────────────────────
 
-  Future<void> googleLogin() async {
-    state = state.copyWith(googleLoading: true, error: null);
+  Future<bool> googleLogin() async {
+    state = state.copyWith(googleLoading: true, clearError: true);
     try {
       final token = await _service.googleLogin();
       await _storage.saveToken(token);
@@ -135,13 +136,37 @@ class AuthController extends Notifier<AuthState> {
       if (user == null) {
         await logout();
         state = state.copyWith(googleLoading: false, error: 'Failed to load user profile');
-        return;
+        return false;
       }
-      state = state.copyWith(googleLoading: false, token: token, user: user);
+
+      // Check if user has completed their profile (existing user)
+      final hasCompletedProfile = _checkIfProfileComplete(user);
+
+      state = state.copyWith(googleLoading: false, token: token, user: user, clearError: true);
+      return hasCompletedProfile;
     } on Exception catch (e) {
       final message = _parseError(e);
       state = state.copyWith(googleLoading: false, error: message);
+      return false;
     }
+  }
+  
+  // ─── Check if user profile is complete ─────────────────────────────────────
+  
+  bool _checkIfProfileComplete(Map<String, dynamic> user) {
+    // A user is considered "existing" if they have:
+    // - classLevel (SS1, SS2, or SS3)
+    // - state (Nigerian state)
+    // - subjects (list of selected subjects)
+    final classLevel = user['classLevel'] ?? user['class_level'];
+    final state = user['state'];
+    final subjects = user['subjects'];
+    
+    // If classLevel and state are present, user has completed onboarding
+    return classLevel != null && 
+           classLevel.toString().isNotEmpty && 
+           state != null && 
+           state.toString().isNotEmpty;
   }
 
   // ─── Logout ────────────────────────────────────────────────────────────────

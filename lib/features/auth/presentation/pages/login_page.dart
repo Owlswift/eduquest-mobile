@@ -60,12 +60,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   // ─── Google Login ───────────────────────────────────────────────────────────
 
   Future<void> _handleGoogleLogin() async {
-    await ref.read(authControllerProvider.notifier).googleLogin();
+    final isExistingUser = await ref.read(authControllerProvider.notifier).googleLogin();
 
     if (!mounted) return;
     final auth = ref.read(authControllerProvider);
-    if (auth.token != null) {
-      context.go(AppRoutes.postRegistration);
+    if (auth.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error!),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (auth.token != null) {
+      // If user exists in DB, go straight to dashboard
+      // If user is new, go to post-registration flow
+      if (isExistingUser) {
+        context.go(AppRoutes.home);
+      } else {
+        context.go(AppRoutes.postRegistration);
+      }
     }
   }
 
