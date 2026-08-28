@@ -30,6 +30,12 @@ dependencies:
   cached_network_image: ^3.4.1
   google_sign_in: ^7.2.0
 
+  # AI Tutor: voice recording/playback, diagram rendering, temp file paths
+  record: ^7.1.1
+  audioplayers: ^6.1.0
+  webview_flutter: ^4.10.0
+  path_provider: ^2.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

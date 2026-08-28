@@ -7,24 +7,25 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../auth/controllers/auth_controller.dart';
 
-class SplashScreen extends ConsumerWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Check auth state and navigate accordingly
-    ref.listen<AuthState>(authControllerProvider, (previous, next) {
-      if (next.token != null) {
-        // User is logged in, go to dashboard
-        context.go('/home');
-      } else {
-        // User is not logged in, go to onboarding
-        context.go('/onboarding');
-      }
-    });
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
+}
 
-    // Trigger navigation after splash duration
+class _SplashScreenState extends ConsumerState<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // A ConsumerWidget's build() re-runs on every rebuild (e.g. the router
+    // rebuilding this route), which used to schedule a fresh Future.delayed
+    // each time - stale timers could then fire ref.read() after this widget
+    // had already navigated away and been disposed. initState() runs once,
+    // and the mounted check below guards the one case that still matters:
+    // the app being backgrounded/torn down during the delay.
     Future.delayed(const Duration(seconds: AppConstants.splashDuration), () {
+      if (!mounted) return;
       final authState = ref.read(authControllerProvider);
       if (authState.token != null) {
         context.go('/home');
@@ -32,7 +33,10 @@ class SplashScreen extends ConsumerWidget {
         context.go('/onboarding');
       }
     });
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(

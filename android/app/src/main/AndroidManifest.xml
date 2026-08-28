@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required by the `record` package for the AI Tutor's voice input -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:label="EduQuest"
         android:name="${applicationName}"

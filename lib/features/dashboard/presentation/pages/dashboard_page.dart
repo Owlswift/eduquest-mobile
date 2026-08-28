@@ -303,7 +303,10 @@ class _ArenaBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 170,
+      // The left column's fixed-size content (icon + title + button) alone
+      // is ~140px tall before the flexible description/spacer even factor
+      // in - 170 wasn't enough room and overflowed by 16px.
+      height: 196,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
@@ -375,8 +378,11 @@ class _ArenaBanner extends StatelessWidget {
           ),
 
           Image.asset(
-            'assets/illustrations/arena_trophy.png',
-            width: 90,
+            'assets/illustrations/trophy.png',
+            // trophy.png is a tall asset (~752x1395) - constrain by height,
+            // not width, so it doesn't overflow this banner's fixed height.
+            height: 120,
+            fit: BoxFit.contain,
           ),
         ],
       ),

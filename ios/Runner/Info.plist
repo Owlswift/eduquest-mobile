@@ -66,6 +66,19 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>EduQuest needs your microphone so you can speak your answers to the AI Tutor.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
 	<key>GIDClientID</key>
 	<string>108767173452-a1e34kjo831jv60cgdjo84rkn4b7q9rn.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>

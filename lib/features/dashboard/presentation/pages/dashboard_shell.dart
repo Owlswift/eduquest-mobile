@@ -10,6 +10,7 @@ import 'subjects_page.dart';
 import 'competitions_page.dart';
 import 'leaderboard_page.dart';
 import 'profile_page.dart';
+import '../../../tutor/presentation/pages/tutor_topics_page.dart';
 
 class DashboardShell extends ConsumerStatefulWidget {
   const DashboardShell({super.key});
@@ -24,6 +25,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
   final _pages = const [
     DashboardPage(),
     SubjectsPage(),
+    TutorTopicsPage(),
     CompetitionsPage(),
     LeaderboardPage(),
     ProfilePage(),
@@ -82,6 +84,7 @@ class _EduQuestNavBar extends StatelessWidget {
   static const _items = [
     _NavItem(icon: Icons.home_rounded, label: 'Home'),
     _NavItem(icon: Icons.menu_book_rounded, label: 'Subjects'),
+    _NavItem(icon: Icons.auto_awesome_rounded, label: 'AI Tutor'),
     _NavItem(icon: Icons.emoji_events_rounded, label: 'Compete'),
     _NavItem(icon: Icons.leaderboard_rounded, label: 'Ranking'),
     _NavItem(icon: Icons.person_rounded, label: 'Profile'),

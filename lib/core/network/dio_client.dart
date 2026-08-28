@@ -11,7 +11,7 @@ class DioClient {
   DioClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: "http://192.168.100.163:3000/api",
+        baseUrl: "http://192.168.100.178:3050/api",
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         headers: {
