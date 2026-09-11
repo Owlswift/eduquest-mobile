@@ -1,22 +1,25 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_shadows.dart';
 import '../../../../core/constants/app_radius.dart';
-import '../../data/mock_data.dart';
-import '../../models/dashboard_models.dart';
+import '../../../competitions/controllers/competitions_provider.dart';
+import '../../../competitions/models/competition.dart';
+import '../../../competitions/presentation/pages/competition_leaderboard_page.dart';
+import '../../../competitions/services/competitions_service.dart';
 
-class CompetitionsPage extends StatefulWidget {
+class CompetitionsPage extends ConsumerStatefulWidget {
   const CompetitionsPage({super.key});
 
   @override
-  State<CompetitionsPage> createState() => _CompetitionsPageState();
+  ConsumerState<CompetitionsPage> createState() => _CompetitionsPageState();
 }
 
-class _CompetitionsPageState extends State<CompetitionsPage>
+class _CompetitionsPageState extends ConsumerState<CompetitionsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -34,10 +37,7 @@ class _CompetitionsPageState extends State<CompetitionsPage>
 
   @override
   Widget build(BuildContext context) {
-    final ongoing =
-        mockCompetitions.where((c) => c.isOngoing).toList();
-    final upcoming =
-        mockCompetitions.where((c) => !c.isOngoing).toList();
+    final async = ref.watch(competitionsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
@@ -58,7 +58,7 @@ class _CompetitionsPageState extends State<CompetitionsPage>
               Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: Icon(Icons.emoji_events_rounded,
-                    color: Colors.white.withOpacity(0.8)),
+                    color: Colors.white.withValues(alpha: 0.8)),
               ),
             ],
             bottom: TabBar(
@@ -76,12 +76,38 @@ class _CompetitionsPageState extends State<CompetitionsPage>
             ),
           ),
         ],
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _CompetitionList(competitions: ongoing, isOngoing: true),
-            _CompetitionList(competitions: upcoming, isOngoing: false),
-          ],
+        body: async.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Couldn't load competitions.",
+                    style: AppTextStyles.body.copyWith(color: AppColors.subtitle),
+                  ),
+                  const Gap(12),
+                  OutlinedButton(
+                    onPressed: () => ref.invalidate(competitionsProvider),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          data: (competitions) {
+            final ongoing = competitions.where((c) => c.isOngoing).toList();
+            final upcoming = competitions.where((c) => c.isUpcoming).toList();
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                _CompetitionList(competitions: ongoing, isOngoing: true),
+                _CompetitionList(competitions: upcoming, isOngoing: false),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -89,7 +115,7 @@ class _CompetitionsPageState extends State<CompetitionsPage>
 }
 
 class _CompetitionList extends StatelessWidget {
-  final List<CompetitionModel> competitions;
+  final List<Competition> competitions;
   final bool isOngoing;
 
   const _CompetitionList(
@@ -103,7 +129,7 @@ class _CompetitionList extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.hourglass_empty_rounded,
-                size: 60, color: AppColors.subtitle.withOpacity(0.4)),
+                size: 60, color: AppColors.subtitle.withValues(alpha: 0.4)),
             const Gap(16),
             Text('No ${isOngoing ? 'ongoing' : 'upcoming'} competitions',
                 style: AppTextStyles.body),
@@ -121,29 +147,28 @@ class _CompetitionList extends StatelessWidget {
   }
 }
 
-class _CompetitionCard extends StatefulWidget {
-  final CompetitionModel competition;
+class _CompetitionCard extends ConsumerStatefulWidget {
+  final Competition competition;
 
   const _CompetitionCard({required this.competition});
 
   @override
-  State<_CompetitionCard> createState() => _CompetitionCardState();
+  ConsumerState<_CompetitionCard> createState() => _CompetitionCardState();
 }
 
-class _CompetitionCardState extends State<_CompetitionCard> {
+class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
   late Timer _timer;
   late Duration _remaining;
+  bool _joining = false;
 
   @override
   void initState() {
     super.initState();
-    _remaining =
-        widget.competition.endsAt.difference(DateTime.now());
+    _remaining = widget.competition.endsAt.difference(DateTime.now());
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() {
-        _remaining =
-            widget.competition.endsAt.difference(DateTime.now());
+        _remaining = widget.competition.endsAt.difference(DateTime.now());
       });
     });
   }
@@ -154,11 +179,39 @@ class _CompetitionCardState extends State<_CompetitionCard> {
     super.dispose();
   }
 
+  Future<void> _join() async {
+    setState(() => _joining = true);
+    try {
+      await CompetitionsService().join(widget.competition.id);
+      ref.invalidate(competitionsProvider);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Couldn't join right now - try again.")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _joining = false);
+    }
+  }
+
+  void _openLeaderboard() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CompetitionLeaderboardPage(
+          competitionId: widget.competition.id,
+          competitionTitle: widget.competition.title,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final d = _remaining;
-    final timeStr =
-        '${d.inDays}d : ${d.inHours.remainder(24).toString().padLeft(2, '0')}h : ${d.inMinutes.remainder(60).toString().padLeft(2, '0')}m : ${d.inSeconds.remainder(60).toString().padLeft(2, '0')}s';
+    final timeStr = d.isNegative
+        ? '0d : 00h : 00m : 00s'
+        : '${d.inDays}d : ${d.inHours.remainder(24).toString().padLeft(2, '0')}h : ${d.inMinutes.remainder(60).toString().padLeft(2, '0')}m : ${d.inSeconds.remainder(60).toString().padLeft(2, '0')}s';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -192,12 +245,14 @@ class _CompetitionCardState extends State<_CompetitionCard> {
                     const Icon(Icons.emoji_events_rounded,
                         color: Color(0xFFFBBF24), size: 22),
                     const SizedBox(width: 8),
-                    Text(
-                      widget.competition.title,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                    Expanded(
+                      child: Text(
+                        widget.competition.title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -207,8 +262,24 @@ class _CompetitionCardState extends State<_CompetitionCard> {
                   widget.competition.subtitle,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white.withValues(alpha: 0.85),
                   ),
+                ),
+                const Gap(8),
+                Row(
+                  children: [
+                    const Icon(Icons.people_alt_rounded,
+                        color: Colors.white70, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${widget.competition.participantCount} joined',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
                 if (widget.competition.isOngoing) ...[
                   const Gap(14),
@@ -216,7 +287,7 @@ class _CompetitionCardState extends State<_CompetitionCard> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -264,7 +335,7 @@ class _CompetitionCardState extends State<_CompetitionCard> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.08),
+                        color: AppColors.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -283,25 +354,45 @@ class _CompetitionCardState extends State<_CompetitionCard> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: _joining
+                        ? null
+                        : widget.competition.isOngoing
+                            ? (widget.competition.isJoined
+                                ? _openLeaderboard
+                                : _join)
+                            : null, // "Notify Me" for upcoming - no notification system yet.
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: widget.competition.isJoined
+                          ? const Color(0xFF059669)
+                          : AppColors.primary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius:
                             BorderRadius.circular(AppRadius.medium),
                       ),
                     ),
-                    child: Text(
-                      widget.competition.isOngoing
-                          ? 'Join Now'
-                          : 'Notify Me',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _joining
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            !widget.competition.isOngoing
+                                ? 'Notify Me'
+                                : widget.competition.isJoined
+                                    ? 'View Leaderboard'
+                                    : 'Join Now',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ],
