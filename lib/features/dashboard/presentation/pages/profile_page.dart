@@ -8,62 +8,64 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_shadows.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/routes/routes.dart';
-import '../../data/mock_data.dart';
-import '../../models/dashboard_models.dart';
+import '../../controllers/subject_progress_provider.dart';
+import '../../controllers/subjects_provider.dart';
+import '../../controllers/user_profile_provider.dart';
+import '../../models/subject_progress_entry.dart';
+import '../../models/user_profile.dart';
 import '../../../auth/controllers/auth_controller.dart';
+import 'rewards_page.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(userProfileProvider).valueOrNull ?? UserProfile.empty;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
-      body: CustomScrollView(
-        slivers: [
-          // ── Profile Header ───────────────────────────────────────────────────
-          SliverToBoxAdapter(child: _ProfileHeader()),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(userProfileProvider);
+          ref.invalidate(subjectProgressProvider);
+        },
+        child: CustomScrollView(
+          slivers: [
+            // ── Profile Header ───────────────────────────────────────────────────
+            SliverToBoxAdapter(child: _ProfileHeader(profile: profile)),
 
-          // ── Stats Row ────────────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: _StatsRow(),
+            // ── Stats Row ────────────────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                child: _StatsRow(profile: profile),
+              ),
             ),
-          ),
 
-          const SliverToBoxAdapter(child: Gap(20)),
+            const SliverToBoxAdapter(child: Gap(20)),
 
-          // ── Badges preview ───────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _BadgesPreview(),
+            // ── Study Progress ───────────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _StudyProgressCard(profile: profile),
+              ),
             ),
-          ),
 
-          const SliverToBoxAdapter(child: Gap(20)),
+            const SliverToBoxAdapter(child: Gap(20)),
 
-          // ── Study Progress ───────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _StudyProgressCard(),
+            // ── Menu items ───────────────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _ProfileMenu(),
+              ),
             ),
-          ),
 
-          const SliverToBoxAdapter(child: Gap(20)),
-
-          // ── Menu items ───────────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _ProfileMenu(),
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: Gap(100)),
-        ],
+            const SliverToBoxAdapter(child: Gap(100)),
+          ],
+        ),
       ),
     );
   }
@@ -72,6 +74,9 @@ class ProfilePage extends StatelessWidget {
 // ─── Profile Header ───────────────────────────────────────────────────────────
 
 class _ProfileHeader extends StatelessWidget {
+  final UserProfile profile;
+  const _ProfileHeader({required this.profile});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -99,7 +104,7 @@ class _ProfileHeader extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.settings_rounded,
@@ -123,11 +128,7 @@ class _ProfileHeader extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        mockUser.name
-                            .split(' ')
-                            .map((e) => e[0].toUpperCase())
-                            .take(2)
-                            .join(),
+                        profile.initials,
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
@@ -144,7 +145,7 @@ class _ProfileHeader extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      'Lv ${mockUser.level}',
+                      'Lv ${profile.level}',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -158,10 +159,7 @@ class _ProfileHeader extends StatelessWidget {
               const Gap(12),
 
               Text(
-                mockUser.name
-                    .split(' ')
-                    .map((e) => e[0].toUpperCase() + e.substring(1))
-                    .join(' '),
+                profile.displayName,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -170,9 +168,9 @@ class _ProfileHeader extends StatelessWidget {
               ),
               const Gap(2),
               Text(
-                mockUser.username,
+                profile.username.isEmpty ? '' : '@${profile.username}',
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.8), fontSize: 14),
+                    color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
               ),
 
               const Gap(14),
@@ -184,7 +182,7 @@ class _ProfileHeader extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${mockUser.xp} XP',
+                        '${profile.xp} XP',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
@@ -192,9 +190,9 @@ class _ProfileHeader extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${mockUser.maxXp} XP',
+                        '${profile.maxXp} XP',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 13,
                         ),
                       ),
@@ -204,8 +202,8 @@ class _ProfileHeader extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(6),
                     child: LinearProgressIndicator(
-                      value: mockUser.xpProgress,
-                      backgroundColor: Colors.white.withOpacity(0.2),
+                      value: profile.levelProgress,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
                       valueColor: const AlwaysStoppedAnimation<Color>(
                           Color(0xFFFBBF24)),
                       minHeight: 8,
@@ -224,6 +222,9 @@ class _ProfileHeader extends StatelessWidget {
 // ─── Stats Row ────────────────────────────────────────────────────────────────
 
 class _StatsRow extends StatelessWidget {
+  final UserProfile profile;
+  const _StatsRow({required this.profile});
+
   @override
   Widget build(BuildContext context) {
     return Transform.translate(
@@ -238,28 +239,28 @@ class _StatsRow extends StatelessWidget {
         child: Row(
           children: [
             _StatItem(
-              value: '${mockUser.coins}',
+              value: '${profile.coins}',
               label: 'Coins',
               icon: Icons.monetization_on_rounded,
               color: const Color(0xFFFBBF24),
             ),
-            _Divider(),
+            const _Divider(),
             _StatItem(
-              value: '${mockUser.badges}',
+              value: '${profile.badges}',
               label: 'Badges',
               icon: Icons.military_tech_rounded,
               color: AppColors.primary,
             ),
-            _Divider(),
+            const _Divider(),
             _StatItem(
-              value: '${mockUser.certificates}',
+              value: '${profile.certificates}',
               label: 'Certificates',
               icon: Icons.workspace_premium_rounded,
               color: const Color(0xFF059669),
             ),
-            _Divider(),
+            const _Divider(),
             _StatItem(
-              value: '${mockUser.streak}',
+              value: '${profile.streak}',
               label: 'Streak',
               icon: Icons.local_fire_department_rounded,
               color: const Color(0xFFFB923C),
@@ -310,104 +311,31 @@ class _StatItem extends StatelessWidget {
 }
 
 class _Divider extends StatelessWidget {
+  const _Divider();
+
   @override
   Widget build(BuildContext context) {
     return Container(
-        width: 1, height: 40, color: AppColors.subtitle.withOpacity(0.15));
-  }
-}
-
-// ─── Badges Preview ───────────────────────────────────────────────────────────
-
-class _BadgesPreview extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final earned =
-        mockBadges.where((b) => b.status == BadgeStatus.earned).toList();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.large),
-        boxShadow: AppShadows.card,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'My Badges',
-                style: AppTextStyles.body.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.text,
-                  fontSize: 15,
-                ),
-              ),
-              Text(
-                '${earned.length}/${mockBadges.length} earned',
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-          const Gap(14),
-          Row(
-            children: mockBadges.take(5).map((badge) {
-              final isEarned = badge.status == BadgeStatus.earned;
-              return Expanded(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: isEarned
-                            ? badge.color.withOpacity(0.12)
-                            : AppColors.subtitle.withOpacity(0.08),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        badge.icon,
-                        color: isEarned
-                            ? badge.color
-                            : AppColors.subtitle.withOpacity(0.3),
-                        size: 24,
-                      ),
-                    ),
-                    const Gap(4),
-                    Text(
-                      badge.title,
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 10,
-                        color: isEarned
-                            ? AppColors.text
-                            : AppColors.subtitle.withOpacity(0.5),
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
+        width: 1,
+        height: 40,
+        color: AppColors.subtitle.withValues(alpha: 0.15));
   }
 }
 
 // ─── Study Progress ───────────────────────────────────────────────────────────
 
-class _StudyProgressCard extends StatelessWidget {
+class _StudyProgressCard extends ConsumerWidget {
+  final UserProfile profile;
+  const _StudyProgressCard({required this.profile});
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subjectProgress = ref.watch(subjectProgressProvider).valueOrNull;
+    final colorsById = {
+      for (final s in ref.watch(subjectsProvider).valueOrNull ?? const [])
+        s.id: s.color,
+    };
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -418,34 +346,13 @@ class _StudyProgressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Study Progress',
-                style: AppTextStyles.body.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.text,
-                  fontSize: 15,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'This Month',
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 12,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            'Study Progress',
+            style: AppTextStyles.body.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.text,
+              fontSize: 15,
+            ),
           ),
 
           const Gap(16),
@@ -455,17 +362,17 @@ class _StudyProgressCard extends StatelessWidget {
             children: [
               _MiniStat(
                 label: 'Questions Answered',
-                value: '${mockUser.questionsAnswered}',
+                value: '${profile.questionsAnswered}',
                 color: AppColors.primary,
               ),
               _MiniStat(
                 label: 'Accuracy',
-                value: '${(mockUser.accuracy * 100).toInt()}%',
+                value: '${(profile.accuracy * 100).toInt()}%',
                 color: const Color(0xFF059669),
               ),
               _MiniStat(
                 label: 'Time Spent',
-                value: mockUser.timeSpent,
+                value: profile.timeSpentLabel,
                 color: const Color(0xFFF59E0B),
               ),
             ],
@@ -484,47 +391,73 @@ class _StudyProgressCard extends StatelessWidget {
 
           const Gap(12),
 
-          ...mockSubjectProgress.map((sp) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          sp.subject,
-                          style: AppTextStyles.body.copyWith(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.text,
-                          ),
-                        ),
-                        Text(
-                          '${(sp.progress * 100).toInt()}%',
-                          style: AppTextStyles.body.copyWith(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: sp.color,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Gap(6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: sp.progress,
-                        backgroundColor:
-                            AppColors.subtitle.withOpacity(0.12),
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(sp.color),
-                        minHeight: 8,
-                      ),
-                    ),
-                  ],
+          if (subjectProgress == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (subjectProgress.isEmpty)
+            Text(
+              'Start a lesson to see your subject progress here.',
+              style: AppTextStyles.body.copyWith(
+                fontSize: 13,
+                color: AppColors.subtitle,
+              ),
+            )
+          else
+            ...subjectProgress.map((sp) => _SubjectProgressRow(
+                  entry: sp,
+                  color: colorsById[sp.subjectId] ?? AppColors.primary,
+                )),
+        ],
+      ),
+    );
+  }
+}
+
+class _SubjectProgressRow extends StatelessWidget {
+  final SubjectProgressEntry entry;
+  final Color color;
+  const _SubjectProgressRow({required this.entry, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                entry.subjectName,
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.text,
                 ),
-              )),
+              ),
+              Text(
+                '${(entry.progress * 100).toInt()}%',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const Gap(6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: entry.progress,
+              backgroundColor: AppColors.subtitle.withValues(alpha: 0.12),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 8,
+            ),
+          ),
         ],
       ),
     );
@@ -606,7 +539,7 @@ class _ProfileMenu extends ConsumerWidget {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
+                      color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(icon, color: color, size: 20),
@@ -654,7 +587,13 @@ class _ProfileMenu extends ConsumerWidget {
                             }
                           }
                         }
-                      : () {},
+                      : label == 'My Rewards'
+                          ? () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const RewardsPage(),
+                                ),
+                              )
+                          : () {},
                 ),
               ),
               if (!isLast)
@@ -662,7 +601,7 @@ class _ProfileMenu extends ConsumerWidget {
                   height: 1,
                   indent: 20,
                   endIndent: 20,
-                  color: AppColors.subtitle.withOpacity(0.1),
+                  color: AppColors.subtitle.withValues(alpha: 0.1),
                 ),
             ],
           );

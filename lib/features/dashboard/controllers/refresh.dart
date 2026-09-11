@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'daily_summary_provider.dart';
 import 'leaderboard_provider.dart';
+import 'subject_progress_provider.dart';
 import 'user_profile_provider.dart';
 
 /// Call after returning from any screen that could have changed the
@@ -11,4 +12,5 @@ void invalidateUserStats(WidgetRef ref) {
   ref.invalidate(userProfileProvider);
   ref.invalidate(dailySummaryProvider);
   ref.invalidate(leaderboardProvider);
+  ref.invalidate(subjectProgressProvider);
 }

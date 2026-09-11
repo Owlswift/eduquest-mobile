@@ -3,6 +3,7 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../dashboard/models/daily_summary.dart';
 import '../../dashboard/models/leaderboard.dart';
+import '../../dashboard/models/subject_progress_entry.dart';
 
 class UsersService {
   final _dio = DioClient().dio;
@@ -43,6 +44,19 @@ class UsersService {
       options: await _authOptions(),
     );
     return LeaderboardData.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  // ─── Per-subject mastery progress (Profile tab) ─────────────────────────────
+
+  Future<List<SubjectProgressEntry>> getSubjectProgress() async {
+    final response = await _dio.get(
+      '/users/subject-progress',
+      options: await _authOptions(),
+    );
+    final List<dynamic> list = response.data;
+    return list
+        .map((e) => SubjectProgressEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   // ─── Update profile (classLevel, state, subjects) ────────────────────────────
