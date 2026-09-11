@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../controllers/daily_summary_provider.dart';
 import '../../controllers/leaderboard_provider.dart';
+import '../../controllers/refresh.dart';
 import '../../controllers/subjects_provider.dart';
 import '../../controllers/user_profile_provider.dart';
 import '../../models/leaderboard.dart';
@@ -345,11 +346,11 @@ class _StatCard extends StatelessWidget {
 
 // ─── Arena Banner ──────────────────────────────────────────────────────────────
 
-class _ArenaBanner extends StatelessWidget {
+class _ArenaBanner extends ConsumerWidget {
   const _ArenaBanner();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       // Sized by content (no fixed height) so the description always has
       // room to render regardless of font-scale factor or screen size.
@@ -402,11 +403,14 @@ class _ArenaBanner extends StatelessWidget {
                 SizedBox(
                   height: context.isTablet ? 48 : 44,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const CompetitionsPage(),
-                      ),
-                    ),
+                    onPressed: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const CompetitionsPage(),
+                        ),
+                      );
+                      invalidateUserStats(ref);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xff0047D9),
@@ -475,9 +479,12 @@ class _RecommendedSection extends ConsumerWidget {
             ),
             const Spacer(),
             TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const TutorTopicsPage()),
-              ),
+              onPressed: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const TutorTopicsPage()),
+                );
+                invalidateUserStats(ref);
+              },
               child: Text(
                 'See all',
                 style: TextStyle(
@@ -508,12 +515,15 @@ class _RecommendedSection extends ConsumerWidget {
                       subtitle: 'Tap to learn',
                       bgColor: s.color.withValues(alpha: 0.10),
                       iconColor: s.color,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              TutorTopicsPage(initialSubjectName: s.name),
-                        ),
-                      ),
+                      onTap: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                TutorTopicsPage(initialSubjectName: s.name),
+                          ),
+                        );
+                        invalidateUserStats(ref);
+                      },
                     );
                   },
                 ),
@@ -688,11 +698,14 @@ class _TodayChallengeCard extends ConsumerWidget {
             width: double.infinity,
             height: context.isTablet ? 46 : 42,
             child: ElevatedButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const TutorTopicsPage(),
-                ),
-              ),
+              onPressed: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const TutorTopicsPage(),
+                  ),
+                );
+                invalidateUserStats(ref);
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xff2563EB),
                 padding: EdgeInsets.zero,

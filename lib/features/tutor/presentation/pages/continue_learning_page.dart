@@ -6,6 +6,7 @@ import '../../../../core/constants/app_shadows.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../dashboard/controllers/refresh.dart';
 import '../../../dashboard/controllers/subjects_provider.dart';
 import '../../../dashboard/models/dashboard_models.dart';
 import '../../controllers/tutor_controller.dart';
@@ -79,6 +80,10 @@ class _ContinueLearningPageState extends ConsumerState<ContinueLearningPage> {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => TutorChatPage(topicTitle: entry.topic.topic)),
     );
+    // The session may have progressed or completed - refresh this list and
+    // the dashboard's stats.
+    invalidateUserStats(ref);
+    if (mounted) _load();
   }
 
   @override

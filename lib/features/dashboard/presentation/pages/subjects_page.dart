@@ -7,6 +7,7 @@ import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_shadows.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../controllers/daily_summary_provider.dart';
+import '../../controllers/refresh.dart';
 import '../../models/daily_summary.dart';
 import '../../../tutor/controllers/tutor_controller.dart';
 import '../../../tutor/models/tutor_models.dart';
@@ -48,13 +49,19 @@ String subjectIconSvg(String subjectId) {
 }
 
 /// Opens the AI Tutor - straight into [subjectName]'s topic list when given
-/// a match, otherwise the subject picker.
-void _openTutor(BuildContext context, {String? subjectName}) {
-  Navigator.of(context).push(
+/// a match, otherwise the subject picker. Refreshes the dashboard's stats
+/// on return, since a lesson in there can change XP/coins/streak.
+Future<void> _openTutor(
+  BuildContext context,
+  WidgetRef ref, {
+  String? subjectName,
+}) async {
+  await Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => TutorTopicsPage(initialSubjectName: subjectName),
     ),
   );
+  invalidateUserStats(ref);
 }
 
 /// Opens the full "Continue Learning" list - in-progress topics only,
@@ -65,11 +72,11 @@ void _openContinueLearning(BuildContext context) {
   );
 }
 
-class SubjectsPage extends StatelessWidget {
+class SubjectsPage extends ConsumerWidget {
   const SubjectsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final hPad = context.isTablet ? 40.0 : 20.0;
 
     return Scaffold(
@@ -87,7 +94,7 @@ class SubjectsPage extends StatelessWidget {
               ),
               _SectionHeader(
                 title: 'Subjects',
-                onViewAll: () => _openTutor(context),
+                onViewAll: () => _openTutor(context, ref),
               ),
               const Gap(16),
               const _SubjectGrid(),
@@ -397,8 +404,8 @@ class _ContinueLearningSectionState
         builder: (_) => TutorChatPage(topicTitle: entry.topic.topic),
       ),
     );
-    // Studying in that session may have advanced the streak / today's goal.
-    ref.invalidate(dailySummaryProvider);
+    // Studying in that session may have advanced XP/coins/streak/goal.
+    invalidateUserStats(ref);
     _load();
   }
 
@@ -540,7 +547,7 @@ class _ContinueLearningCard extends StatelessWidget {
 
 // ─── Subject grid ───────────────────────────────────────────────────────────
 
-class _SubjectGrid extends StatelessWidget {
+class _SubjectGrid extends ConsumerWidget {
   const _SubjectGrid();
 
   static const _subjects = [
@@ -555,7 +562,7 @@ class _SubjectGrid extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -572,6 +579,7 @@ class _SubjectGrid extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: () => _openTutor(
             context,
+            ref,
             subjectName: name == 'More' ? null : name,
           ),
           child: Column(

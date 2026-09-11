@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../auth/controllers/auth_controller.dart';
+import '../../../dashboard/controllers/refresh.dart';
 import '../../../dashboard/models/dashboard_models.dart';
 import '../../../subjects/services/subjects_service.dart';
 import '../../controllers/tutor_controller.dart';
@@ -153,6 +154,8 @@ class _TutorTopicsPageState extends ConsumerState<TutorTopicsPage> {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => TutorChatPage(topicTitle: topic.topic)),
     );
+    // The lesson may have changed XP/coins/streak - refresh the dashboard.
+    invalidateUserStats(ref);
   }
 
   @override
