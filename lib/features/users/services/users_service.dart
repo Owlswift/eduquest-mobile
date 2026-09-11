@@ -4,6 +4,7 @@ import '../../../core/storage/token_storage.dart';
 import '../../dashboard/models/daily_summary.dart';
 import '../../dashboard/models/leaderboard.dart';
 import '../../dashboard/models/subject_progress_entry.dart';
+import '../../quiz/models/quiz_models.dart';
 
 class UsersService {
   final _dio = DioClient().dio;
@@ -94,9 +95,12 @@ class UsersService {
 
   // ─── Complete starter challenge ──────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> completeStarterChallenge() async {
+  Future<Map<String, dynamic>> completeStarterChallenge(
+    List<SubmittedAnswer> answers,
+  ) async {
     final response = await _dio.post(
       '/users/complete-challenge',
+      data: {'answers': answers.map((a) => a.toJson()).toList()},
       options: await _authOptions(),
     );
     return response.data;

@@ -8,6 +8,8 @@ import '../../../../core/constants/app_shadows.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../controllers/daily_summary_provider.dart';
 import '../../controllers/refresh.dart';
+import '../../controllers/subjects_provider.dart';
+import '../../models/dashboard_models.dart';
 import '../../models/daily_summary.dart';
 import '../../../tutor/controllers/tutor_controller.dart';
 import '../../../tutor/models/tutor_models.dart';
@@ -15,6 +17,7 @@ import '../../../tutor/presentation/pages/continue_learning_page.dart';
 import '../../../tutor/presentation/pages/tutor_chat_page.dart';
 import '../../../tutor/presentation/pages/tutor_topics_page.dart';
 import '../../../tutor/services/tutor_service.dart';
+import '../../../quiz/presentation/pages/quiz_play_page.dart';
 import '../widgets/subject_icons.dart';
 
 /// Picks the closest hand-authored subject icon for a backend subjectId,
@@ -72,6 +75,73 @@ void _openContinueLearning(BuildContext context) {
   );
 }
 
+/// Lets the student pick a subject to practice, then starts a quiz.
+Future<void> _openQuizPicker(BuildContext context, WidgetRef ref) async {
+  final subjectsAsync = ref.read(subjectsProvider);
+  final subjects = subjectsAsync.valueOrNull;
+  if (subjects == null || subjects.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Subjects are still loading - try again in a moment.')),
+    );
+    return;
+  }
+
+  final picked = await showModalBottomSheet<SubjectModel>(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Practice which subject?',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF101828)),
+              ),
+              const SizedBox(height: 16),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(sheetContext).size.height * 0.5),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: subjects.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, i) {
+                    final s = subjects[i];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: SvgPicture.string(subjectIconSvg(s.id)),
+                      ),
+                      title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      onTap: () => Navigator.of(sheetContext).pop(s),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+
+  if (picked != null && context.mounted) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuizPlayPage(subjectId: picked.id, subjectName: picked.name),
+      ),
+    );
+  }
+}
+
 class SubjectsPage extends ConsumerWidget {
   const SubjectsPage({super.key});
 
@@ -98,6 +168,8 @@ class SubjectsPage extends ConsumerWidget {
               ),
               const Gap(16),
               const _SubjectGrid(),
+              const Gap(28),
+              const _PracticeQuizCard(),
               const Gap(28),
               const _TodayGoalCard(),
             ],
@@ -604,6 +676,66 @@ class _SubjectGrid extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// ─── Practice Quiz card ─────────────────────────────────────────────────────
+
+class _PracticeQuizCard extends ConsumerWidget {
+  const _PracticeQuizCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subjectsAsync = ref.watch(subjectsProvider);
+    final ready = subjectsAsync.valueOrNull?.isNotEmpty ?? false;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: ready ? () => _openQuizPicker(context, ref) : null,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.large),
+          boxShadow: AppShadows.card,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0757E8).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.quiz_rounded, color: Color(0xFF0757E8), size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Practice Quiz',
+                    style: TextStyle(
+                      fontSize: context.rs(15),
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF172033),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Test yourself and earn coins + XP',
+                    style: TextStyle(fontSize: context.rs(12), color: const Color(0xFF758092)),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFF9AA4B2)),
+          ],
+        ),
+      ),
     );
   }
 }

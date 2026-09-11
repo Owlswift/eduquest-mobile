@@ -16,11 +16,13 @@ class PostRegState {
   final int bonusXp;
   final bool bonusClaimed;
   final List<QuestionModel> questions;
+  final List<SubmittedAnswer> submittedAnswers;
   final int currentQuestionIndex;
   final int timeLeft;
   final bool isChallengeActive;
   final String? selectedAnswerId;
   final bool? answerCorrect;
+  final String? revealedCorrectOptionId;
   final int earnedCoins;
   final int earnedXp;
   final int questionsAnswered;
@@ -41,11 +43,13 @@ class PostRegState {
     this.bonusXp = 0,
     this.bonusClaimed = false,
     this.questions = const [],
+    this.submittedAnswers = const [],
     this.currentQuestionIndex = 0,
     this.timeLeft = 30,
     this.isChallengeActive = false,
     this.selectedAnswerId,
     this.answerCorrect,
+    this.revealedCorrectOptionId,
     this.earnedCoins = 0,
     this.earnedXp = 0,
     this.questionsAnswered = 0,
@@ -67,11 +71,13 @@ class PostRegState {
     int? bonusXp,
     bool? bonusClaimed,
     List<QuestionModel>? questions,
+    List<SubmittedAnswer>? submittedAnswers,
     int? currentQuestionIndex,
     int? timeLeft,
     bool? isChallengeActive,
     String? selectedAnswerId,
     bool? answerCorrect,
+    String? revealedCorrectOptionId,
     int? earnedCoins,
     int? earnedXp,
     int? questionsAnswered,
@@ -92,11 +98,13 @@ class PostRegState {
       bonusXp: bonusXp ?? this.bonusXp,
       bonusClaimed: bonusClaimed ?? this.bonusClaimed,
       questions: questions ?? this.questions,
+      submittedAnswers: submittedAnswers ?? this.submittedAnswers,
       currentQuestionIndex: currentQuestionIndex ?? this.currentQuestionIndex,
       timeLeft: timeLeft ?? this.timeLeft,
       isChallengeActive: isChallengeActive ?? this.isChallengeActive,
       selectedAnswerId: selectedAnswerId,
       answerCorrect: answerCorrect,
+      revealedCorrectOptionId: revealedCorrectOptionId ?? this.revealedCorrectOptionId,
       earnedCoins: earnedCoins ?? this.earnedCoins,
       earnedXp: earnedXp ?? this.earnedXp,
       questionsAnswered: questionsAnswered ?? this.questionsAnswered,
@@ -116,6 +124,7 @@ class PostRegState {
     int? questionsAnswered,
     String? selectedAnswerId,
     bool? answerCorrect,
+    String? revealedCorrectOptionId,
   }) {
     return PostRegState(
       step: this.step,
@@ -127,11 +136,13 @@ class PostRegState {
       bonusXp: this.bonusXp,
       bonusClaimed: this.bonusClaimed,
       questions: this.questions,
+      submittedAnswers: this.submittedAnswers,
       currentQuestionIndex: currentQuestionIndex ?? this.currentQuestionIndex,
       timeLeft: timeLeft ?? this.timeLeft,
       isChallengeActive: this.isChallengeActive,
       selectedAnswerId: selectedAnswerId,
       answerCorrect: answerCorrect,
+      revealedCorrectOptionId: revealedCorrectOptionId,
       earnedCoins: this.earnedCoins,
       earnedXp: this.earnedXp,
       questionsAnswered: questionsAnswered ?? this.questionsAnswered,
@@ -261,6 +272,7 @@ class PostRegNotifier extends Notifier<PostRegState> {
       state = state.copyWith(
         loading: false,
         questions: questions,
+        submittedAnswers: const [],
         currentQuestionIndex: 0,
         timeLeft: 30,
         isChallengeActive: true,
@@ -281,19 +293,40 @@ class PostRegNotifier extends Notifier<PostRegState> {
 
   // ─── Select answer ────────────────────────────────────────────────────────
 
-  void selectAnswer(String answerId) {
+  Future<void> selectAnswer(String answerId) async {
     // Guard: ignore if already answered
     if (state.selectedAnswerId != null) return;
 
     final question = state.questions[state.currentQuestionIndex];
-    final isCorrect = question.correctAnswerId == answerId;
+    final answers = List<SubmittedAnswer>.from(state.submittedAnswers)
+      ..add(SubmittedAnswer(questionId: question.id, selectedOptionId: answerId));
 
+    // Show the pick immediately (isCorrect unknown yet) so the tap feels
+    // responsive, then fill in right/wrong once the server confirms it.
     state = state.copyWith(
       selectedAnswerId: answerId,
-      answerCorrect: isCorrect,
+      submittedAnswers: answers,
       questionsAnswered: state.questionsAnswered + 1,
-      correctAnswers: state.correctAnswers + (isCorrect ? 1 : 0),
     );
+
+    try {
+      final check = await _quizService.checkAnswer(
+        questionId: question.id,
+        selectedOptionId: answerId,
+      );
+      // Guard: the student may have already moved to the next question
+      // (e.g. slow network) - don't stamp a stale result onto it.
+      if (state.selectedAnswerId != answerId) return;
+      state = state.copyWith(
+        answerCorrect: check.correct,
+        revealedCorrectOptionId: check.correctOptionId,
+        correctAnswers: state.correctAnswers + (check.correct ? 1 : 0),
+      );
+    } catch (_) {
+      // Feedback is cosmetic here - real grading happens server-side on
+      // submit regardless, so a failed check just leaves this question's
+      // color neutral instead of blocking progress.
+    }
   }
 
   // ─── Advance to next question ─────────────────────────────────────────────
@@ -321,7 +354,13 @@ class PostRegNotifier extends Notifier<PostRegState> {
     if (state.timeLeft > 1) {
       state = state.copyWith(timeLeft: state.timeLeft - 1);
     } else {
-      // Time's up on this question
+      // Time's up on this question - record it as unanswered (an empty
+      // selectedOptionId just won't match any correctAnswerId server-side).
+      final question = state.questions[state.currentQuestionIndex];
+      final answers = List<SubmittedAnswer>.from(state.submittedAnswers)
+        ..add(SubmittedAnswer(questionId: question.id, selectedOptionId: ''));
+      state = state.copyWith(submittedAnswers: answers);
+
       if (state.currentQuestionIndex < state.questions.length - 1) {
         // Not last question — advance
         state = state.copyWithReset(
@@ -363,25 +402,27 @@ class PostRegNotifier extends Notifier<PostRegState> {
     );
 
     try {
-      final result = await _service.completeStarterChallenge();
+      final result = await _service.completeStarterChallenge(state.submittedAnswers);
       state = state.copyWith(
         loading: false,
-        earnedCoins: result['earnedCoins'] ?? state.correctAnswers * 10,
-        earnedXp: result['earnedXp'] ?? state.correctAnswers * 10,
+        earnedCoins: result['earnedCoins'] ?? 0,
+        earnedXp: result['earnedXp'] ?? 0,
+        correctAnswers: result['correctAnswers'] ?? state.correctAnswers,
         questionsAnswered: state.questionsAnswered,
         nationalRank: result['nationalRank'] ?? 1,
         stateRank: result['stateRank'] ?? 1,
         // Set challengeComplete LAST — this triggers the listener in the screen
         challengeComplete: true,
       );
-    } catch (_) {
+    } catch (e) {
+      // Don't fabricate a fake "success" result - the coins/XP shown would
+      // be lies if the server call actually failed. Let the screen show a
+      // real error and offer to retry instead.
+      _isSubmitting = false;
       state = state.copyWith(
         loading: false,
-        earnedCoins: state.correctAnswers * 10,
-        earnedXp: state.correctAnswers * 10,
-        nationalRank: 1,
-        stateRank: 1,
-        challengeComplete: true,
+        isChallengeActive: false,
+        error: "Couldn't submit your results - check your connection and try again.",
       );
     }
   }

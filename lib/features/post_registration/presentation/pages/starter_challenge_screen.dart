@@ -119,6 +119,21 @@ class _StarterChallengeScreenState
           Navigator.of(context).pop(); // pop quiz screen
           ref.read(postRegProvider.notifier).nextStep(); // advance to step 7
         }
+        return;
+      }
+      // Submission genuinely failed - say so and offer to retry rather
+      // than silently making up a result.
+      if (next.error != null && prev?.error != next.error && !next.isChallengeActive) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error!),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => ref.read(postRegProvider.notifier).finishAndShowResults(),
+            ),
+            duration: const Duration(seconds: 6),
+          ),
+        );
       }
     });
 
@@ -259,7 +274,7 @@ class _StarterChallengeScreenState
                       final label = ['A', 'B', 'C', 'D'][index];
                       final isSelected = state.selectedAnswerId == option.id;
                       final isCorrect =
-                          option.id == question.correctAnswerId;
+                          option.id == state.revealedCorrectOptionId;
 
                       // Colors depend on answered state
                       Color borderColor;
@@ -268,12 +283,31 @@ class _StarterChallengeScreenState
                       Color labelColor;
                       Widget? trailing;
 
+                      // Brief window between tapping and the server's
+                      // check-answer response - show the pick without
+                      // claiming right/wrong yet, so it doesn't flash red
+                      // before possibly turning green a moment later.
+                      final revealing =
+                          hasAnswered && state.revealedCorrectOptionId == null;
+
                       if (!hasAnswered) {
                         // No answer yet — all options neutral
                         borderColor = _borderGrey;
                         bgColor = Colors.white;
                         labelBg = const Color(0xFFF3F4F6);
                         labelColor = _greyText;
+                      } else if (revealing) {
+                        if (isSelected) {
+                          borderColor = _blue;
+                          bgColor = const Color(0xFFEFF3FF);
+                          labelBg = _blue;
+                          labelColor = Colors.white;
+                        } else {
+                          borderColor = _borderGrey;
+                          bgColor = Colors.white;
+                          labelBg = const Color(0xFFF3F4F6);
+                          labelColor = _greyText;
+                        }
                       } else if (isCorrect) {
                         // Always highlight correct answer in green
                         borderColor = _green;

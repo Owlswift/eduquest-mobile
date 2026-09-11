@@ -3,7 +3,6 @@ class QuestionModel {
   final String subjectId;
   final String questionText;
   final List<AnswerOption> options;
-  final String correctAnswerId;
   final String? explanation;
   final int difficulty; // 1-5
   final String classLevel;
@@ -13,7 +12,6 @@ class QuestionModel {
     required this.subjectId,
     required this.questionText,
     required this.options,
-    required this.correctAnswerId,
     this.explanation,
     this.difficulty = 1,
     required this.classLevel,
@@ -27,7 +25,6 @@ class QuestionModel {
       options: (json['options'] as List<dynamic>?)
           ?.map((opt) => AnswerOption.fromJson(opt))
           .toList() ?? [],
-      correctAnswerId: json['correctAnswerId'] ?? json['correct_answer_id'] ?? '',
       explanation: json['explanation'],
       difficulty: json['difficulty'] ?? 1,
       classLevel: json['classLevel'] ?? json['class_level'] ?? 'SS1',
@@ -40,12 +37,27 @@ class QuestionModel {
       'subjectId': subjectId,
       'questionText': questionText,
       'options': options.map((opt) => opt.toJson()).toList(),
-      'correctAnswerId': correctAnswerId,
       'explanation': explanation,
       'difficulty': difficulty,
       'classLevel': classLevel,
     };
   }
+}
+
+/// One answer a student picked for one question - the unit both the main
+/// quiz submit and the starter-challenge submit send to the backend for
+/// server-side grading. The server is the only place that knows what's
+/// actually correct.
+class SubmittedAnswer {
+  final String questionId;
+  final String selectedOptionId;
+
+  const SubmittedAnswer({required this.questionId, required this.selectedOptionId});
+
+  Map<String, dynamic> toJson() => {
+        'questionId': questionId,
+        'selectedOptionId': selectedOptionId,
+      };
 }
 
 class AnswerOption {
