@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/routes/routes.dart';
+import '../../services/auth_service.dart';
 
 // Local state for forgot password (not part of AuthController)
 final _forgotLoadingProvider = StateProvider<bool>((ref) => false);
@@ -39,16 +41,27 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     ref.read(_forgotLoadingProvider.notifier).state = true;
     ref.read(_forgotErrorProvider.notifier).state = null;
 
-    // Simulate API call — replace with real service call
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      await AuthService().forgotPassword(email);
+      ref.read(_forgotLoadingProvider.notifier).state = false;
+      ref.read(_forgotSuccessProvider.notifier).state = true;
 
-    ref.read(_forgotLoadingProvider.notifier).state = false;
-    ref.read(_forgotSuccessProvider.notifier).state = true;
-
-    if (mounted) {
-      context.push(
-        '${AppRoutes.otpVerification}?email=${Uri.encodeComponent(email)}',
-      );
+      if (mounted) {
+        context.push(
+          '${AppRoutes.otpVerification}?email=${Uri.encodeComponent(email)}',
+        );
+      }
+    } on DioException catch (e) {
+      ref.read(_forgotLoadingProvider.notifier).state = false;
+      final message = (e.response?.data is Map)
+          ? (e.response?.data['message']?.toString())
+          : null;
+      ref.read(_forgotErrorProvider.notifier).state =
+          message ?? "Couldn't send the code right now - try again.";
+    } catch (_) {
+      ref.read(_forgotLoadingProvider.notifier).state = false;
+      ref.read(_forgotErrorProvider.notifier).state =
+          "Couldn't send the code right now - try again.";
     }
   }
 
@@ -95,7 +108,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
             const Gap(8),
 
             Text(
-              'No worries! Enter your email and\nwe\'ll send you a reset link.',
+              'No worries! Enter your email and\nwe\'ll send you a 6-digit code.',
               style: AppTextStyles.body.copyWith(fontSize: 14),
               textAlign: TextAlign.center,
             ),
@@ -129,7 +142,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                     const Gap(8),
                     Expanded(
                       child: Text(
-                        'Reset link sent! Check your inbox.',
+                        'Code sent! Check your inbox.',
                         style: AppTextStyles.body.copyWith(
                           color: AppColors.success,
                           fontSize: 13,
@@ -162,7 +175,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
             ],
 
             PrimaryButton(
-              text: 'Send Reset Link',
+              text: 'Send Code',
               icon: Icons.send_rounded,
               loading: loading,
               onPressed: _handleSendLink,

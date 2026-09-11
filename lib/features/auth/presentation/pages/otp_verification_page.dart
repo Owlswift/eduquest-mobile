@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/routes/routes.dart';
+import '../../services/auth_service.dart';
 
 final _otpLoadingProvider = StateProvider<bool>((ref) => false);
 final _otpErrorProvider = StateProvider<String?>((ref) => null);
@@ -82,12 +84,39 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
     ref.read(_otpLoadingProvider.notifier).state = true;
     ref.read(_otpErrorProvider.notifier).state = null;
 
-    // Replace with real OTP verification call
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final resetToken = await AuthService().verifyOtp(widget.email, _otp);
+      ref.read(_otpLoadingProvider.notifier).state = false;
+      if (mounted) {
+        context.go(
+          '${AppRoutes.newPassword}?token=${Uri.encodeComponent(resetToken)}',
+        );
+      }
+    } on DioException catch (e) {
+      ref.read(_otpLoadingProvider.notifier).state = false;
+      final message = (e.response?.data is Map)
+          ? (e.response?.data['message']?.toString())
+          : null;
+      ref.read(_otpErrorProvider.notifier).state = message ?? 'Invalid or expired code.';
+      for (final c in _controllers) c.clear();
+      if (_controllers.isNotEmpty) _focusNodes.first.requestFocus();
+      setState(() {});
+    } catch (_) {
+      ref.read(_otpLoadingProvider.notifier).state = false;
+      ref.read(_otpErrorProvider.notifier).state = "Couldn't verify right now - try again.";
+    }
+  }
 
-    ref.read(_otpLoadingProvider.notifier).state = false;
-
-    if (mounted) context.go(AppRoutes.login);
+  Future<void> _handleResend() async {
+    if (_resendSeconds > 0) return;
+    try {
+      await AuthService().forgotPassword(widget.email);
+    } catch (_) {
+      // Best-effort - the resend cooldown UI still restarts below, and if
+      // this silently failed the user can just tap Resend again once the
+      // timer clears.
+    }
+    if (mounted) _startTimer();
   }
 
   @override
@@ -209,7 +238,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
                             .copyWith(fontSize: 14, color: AppColors.subtitle),
                       )
                     : GestureDetector(
-                        onTap: _startTimer,
+                        onTap: _handleResend,
                         child: Text(
                           'Resend',
                           style: AppTextStyles.body.copyWith(

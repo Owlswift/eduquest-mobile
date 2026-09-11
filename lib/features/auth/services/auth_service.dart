@@ -64,6 +64,31 @@ class AuthService {
     return response.data['accessToken'];
   }
 
+  // ─── Forgot password (send OTP) ─────────────────────────────────────────────
+
+  Future<void> forgotPassword(String email) async {
+    await _dio.post('/auth/forgot-password', data: {'email': email});
+  }
+
+  // ─── Verify OTP → short-lived reset token ───────────────────────────────────
+
+  Future<String> verifyOtp(String email, String code) async {
+    final response = await _dio.post(
+      '/auth/verify-otp',
+      data: {'email': email, 'code': code},
+    );
+    return response.data['resetToken'];
+  }
+
+  // ─── Reset password (using the token from verifyOtp) ────────────────────────
+
+  Future<void> resetPassword(String resetToken, String newPassword) async {
+    await _dio.post(
+      '/auth/reset-password',
+      data: {'resetToken': resetToken, 'newPassword': newPassword},
+    );
+  }
+
   // ─── Get User Profile ────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getProfile() async {

@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/new_password_page.dart';
 import '../../features/auth/presentation/pages/otp_verification_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_shell.dart';
@@ -41,6 +42,13 @@ class AppRouter {
         builder: (context, state) {
           final email = state.uri.queryParameters['email'] ?? '';
           return OtpVerificationPage(email: email);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.newPassword,
+        builder: (context, state) {
+          final token = state.uri.queryParameters['token'] ?? '';
+          return NewPasswordPage(resetToken: token);
         },
       ),
       GoRoute(
