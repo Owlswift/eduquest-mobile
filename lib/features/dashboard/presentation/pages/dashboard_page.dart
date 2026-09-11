@@ -1,61 +1,79 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class DashboardPage extends StatelessWidget {
+import '../../../../core/utils/responsive.dart';
+import '../../controllers/daily_summary_provider.dart';
+import '../../controllers/leaderboard_provider.dart';
+import '../../controllers/subjects_provider.dart';
+import '../../controllers/user_profile_provider.dart';
+import '../../models/leaderboard.dart';
+import '../../../tutor/presentation/pages/tutor_topics_page.dart';
+import 'competitions_page.dart';
+import 'leaderboard_page.dart';
+
+class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hPad = context.isTablet ? 40.0 : 20.0;
+    final profile = ref.watch(userProfileProvider).valueOrNull;
+
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFF),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              _DashboardHeader(),
-              SizedBox(height: 20),
-              _LevelCard(),
-              SizedBox(height: 16),
+        child: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(userProfileProvider),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 120),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              const _DashboardHeader(),
+              const SizedBox(height: 20),
+              const _LevelCard(),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: _StatCard(
                       iconAsset: 'assets/illustrations/xp_coin.png',
                       label: '⭐ XP Earned',
-                      value: '100',
-                      subtitle: 'Entrance Test',
+                      value: '${profile?.xp ?? 0}',
+                      subtitle: 'Keep it growing',
                     ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: _StatCard(
                       iconAsset: 'assets/illustrations/gold_coin.png',
                       label: '🪙 Coins',
-                      value: '50',
+                      value: '${profile?.coins ?? 0}',
                       subtitle: 'Ready to spend',
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 16),
-              _ArenaBanner(),
-              SizedBox(height: 20),
-              _RecommendedSection(),
-              SizedBox(height: 20),
+              const SizedBox(height: 16),
+              const _ArenaBanner(),
+              const SizedBox(height: 20),
+              const _RecommendedSection(),
+              const SizedBox(height: 20),
               IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+                  children: const [
                     Expanded(flex: 5, child: _TodayChallengeCard()),
                     SizedBox(width: 12),
                     Expanded(flex: 6, child: _LeaderboardCard()),
                   ],
                 ),
               ),
-              SizedBox(height: 20),
-              _RewardsProgressCard(),
-            ],
+              const SizedBox(height: 20),
+              const _RewardsProgressCard(),
+              ],
+            ),
           ),
         ),
       ),
@@ -65,31 +83,43 @@ class DashboardPage extends StatelessWidget {
 
 // ─── Header ────────────────────────────────────────────────────────────────────
 
-class _DashboardHeader extends StatelessWidget {
+String _greeting() {
+  final h = DateTime.now().hour;
+  if (h < 12) return 'Good Morning';
+  if (h < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
+class _DashboardHeader extends ConsumerWidget {
   const _DashboardHeader();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(userProfileProvider).valueOrNull;
+    final name = profile?.firstName ?? '';
+
     return Row(
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
-                'Good Morning 👋',
+                '${_greeting()} 👋',
                 style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xff6B7280),
+                  fontSize: context.rs(16),
+                  color: const Color(0xff6B7280),
                 ),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
-                'Ola',
+                name.isEmpty ? '—' : name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 36,
+                  fontSize: context.rs(36),
                   fontWeight: FontWeight.w800,
-                  color: Color(0xff0F172A),
+                  color: const Color(0xff0F172A),
                 ),
               ),
             ],
@@ -97,9 +127,9 @@ class _DashboardHeader extends StatelessWidget {
         ),
 
         Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
+          width: context.isTablet ? 56 : 48,
+          height: context.isTablet ? 56 : 48,
+          decoration: const BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
             boxShadow: [
@@ -109,15 +139,16 @@ class _DashboardHeader extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(Icons.notifications_none_rounded, size: 24),
+          child: Icon(Icons.notifications_none_rounded,
+              size: context.isTablet ? 28 : 24),
         ),
 
         const SizedBox(width: 12),
 
-        const CircleAvatar(
-          radius: 26,
+        CircleAvatar(
+          radius: context.isTablet ? 30 : 26,
           backgroundImage:
-              AssetImage('assets/illustrations/avatar_student.png'),
+              const AssetImage('assets/illustrations/avatar_student.png'),
         ),
       ],
     );
@@ -126,11 +157,28 @@ class _DashboardHeader extends StatelessWidget {
 
 // ─── Level Card ────────────────────────────────────────────────────────────────
 
-class _LevelCard extends StatelessWidget {
+const _levelTitles = {
+  1: 'Explorer',
+  2: 'Scholar',
+  3: 'Achiever',
+  4: 'Champion',
+  5: 'Legend',
+};
+
+class _LevelCard extends ConsumerWidget {
   const _LevelCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(userProfileProvider).valueOrNull;
+    final level = profile?.level ?? 1;
+    final xp = profile?.xp ?? 0;
+    final maxXp = profile?.maxXp ?? 500;
+    final title = _levelTitles[level] ?? 'Level $level';
+    final blurb = level <= 1
+        ? "You've completed your first challenge and joined the academy."
+        : 'Keep learning to climb to the next level.';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -146,7 +194,7 @@ class _LevelCard extends StatelessWidget {
             children: [
               Image.asset(
                 'assets/illustrations/level1_badge.png',
-                width: 75,
+                width: context.isTablet ? 90 : 75,
               ),
 
               const SizedBox(width: 16),
@@ -154,18 +202,18 @@ class _LevelCard extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      'Level 1 • Explorer',
+                      'Level $level • $title',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: context.rs(18),
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      "You've completed your first challenge and joined the academy.",
-                      style: TextStyle(fontSize: 13),
+                      blurb,
+                      style: TextStyle(fontSize: context.rs(13)),
                     ),
                   ],
                 ),
@@ -173,29 +221,29 @@ class _LevelCard extends StatelessWidget {
 
               Image.asset(
                 'assets/illustrations/school_bag.png',
-                width: 85,
+                width: context.isTablet ? 100 : 85,
               ),
             ],
           ),
 
           const SizedBox(height: 12),
 
-          const Row(
+          Row(
             children: [
               Text(
-                'Progress to Level 2',
+                'Progress to Level ${level + 1}',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: context.rs(14),
                 ),
               ),
-              Spacer(),
+              const Spacer(),
               Text(
-                '100 / 300 XP',
+                '$xp / $maxXp XP',
                 style: TextStyle(
-                  color: Color(0xff2563EB),
+                  color: const Color(0xff2563EB),
                   fontWeight: FontWeight.w800,
-                  fontSize: 14,
+                  fontSize: context.rs(14),
                 ),
               ),
             ],
@@ -206,8 +254,8 @@ class _LevelCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(
-              value: 0.33,
-              minHeight: 12,
+              value: maxXp <= 0 ? 0 : (xp / maxXp).clamp(0.0, 1.0),
+              minHeight: context.isTablet ? 14 : 12,
               backgroundColor: Colors.white,
               color: const Color(0xff2563EB),
             ),
@@ -246,7 +294,7 @@ class _StatCard extends StatelessWidget {
         children: [
           Image.asset(
             iconAsset,
-            width: 40,
+            width: context.isTablet ? 48 : 40,
           ),
 
           const SizedBox(width: 10),
@@ -259,10 +307,10 @@ class _StatCard extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
+                  style: TextStyle(
+                    fontSize: context.rs(13),
                     fontWeight: FontWeight.w600,
-                    color: Color(0xff64748B),
+                    color: const Color(0xff64748B),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -270,10 +318,10 @@ class _StatCard extends StatelessWidget {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 26,
+                  style: TextStyle(
+                    fontSize: context.rs(26),
                     fontWeight: FontWeight.w800,
-                    color: Color(0xff0F172A),
+                    color: const Color(0xff0F172A),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -281,9 +329,9 @@ class _StatCard extends StatelessWidget {
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xff64748B),
+                  style: TextStyle(
+                    fontSize: context.rs(12),
+                    color: const Color(0xff64748B),
                   ),
                 ),
               ],
@@ -303,10 +351,8 @@ class _ArenaBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // The left column's fixed-size content (icon + title + button) alone
-      // is ~140px tall before the flexible description/spacer even factor
-      // in - 170 wasn't enough room and overflowed by 16px.
-      height: 196,
+      // Sized by content (no fixed height) so the description always has
+      // room to render regardless of font-scale factor or screen size.
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
@@ -318,44 +364,49 @@ class _ArenaBanner extends StatelessWidget {
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Image.asset(
                   'assets/illustrations/crossed_swords.png',
-                  width: 50,
+                  width: context.isTablet ? 58 : 50,
                 ),
 
                 const SizedBox(height: 8),
 
-                const Text(
+                Text(
                   'Enter the Arena',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 24,
+                    fontSize: context.rs(24),
                     fontWeight: FontWeight.w800,
                   ),
                 ),
 
                 const SizedBox(height: 6),
 
-                const Expanded(
-                  child: Text(
-                    'Compete with other students and win XP, coins, airtime, scholarships and devices.',
-                    style: TextStyle(color: Colors.white, fontSize: 13),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Text(
+                  'Compete with other students and win XP, coins, airtime, scholarships and devices.',
+                  style: TextStyle(
+                      color: Colors.white, fontSize: context.rs(13)),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
 
-                const Spacer(),
+                const SizedBox(height: 16),
 
                 SizedBox(
-                  height: 44,
+                  height: context.isTablet ? 48 : 44,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const CompetitionsPage(),
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xff0047D9),
@@ -364,10 +415,10 @@ class _ArenaBanner extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Choose Arena',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: context.rs(15),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -381,7 +432,7 @@ class _ArenaBanner extends StatelessWidget {
             'assets/illustrations/trophy.png',
             // trophy.png is a tall asset (~752x1395) - constrain by height,
             // not width, so it doesn't overflow this banner's fixed height.
-            height: 120,
+            height: context.isTablet ? 140 : 120,
             fit: BoxFit.contain,
           ),
         ],
@@ -394,33 +445,45 @@ class _ArenaBanner extends StatelessWidget {
 // RECOMMENDED SUBJECTS
 // ======================================================
 
-class _RecommendedSection extends StatelessWidget {
+class _RecommendedSection extends ConsumerWidget {
   const _RecommendedSection();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final all = ref.watch(subjectsProvider).valueOrNull ?? const [];
+    final enrolled = ref.watch(userProfileProvider).valueOrNull?.subjects ?? const [];
+
+    // Prefer the student's enrolled subjects, in the catalogue's order;
+    // fall back to the whole catalogue if we don't know their enrolment.
+    final enrolledSet = enrolled.toSet();
+    var subjects = all.where((s) => enrolledSet.contains(s.id)).toList();
+    if (subjects.isEmpty) subjects = all;
+    subjects = subjects.take(8).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Text(
+            Text(
               'Recommended',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: context.rs(20),
                 fontWeight: FontWeight.w800,
-                color: Color(0xff0F172A),
+                color: const Color(0xff0F172A),
               ),
             ),
             const Spacer(),
             TextButton(
-              onPressed: () {},
-              child: const Text(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TutorTopicsPage()),
+              ),
+              child: Text(
                 'See all',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: Color(0xff2563EB),
-                  fontSize: 14,
+                  color: const Color(0xff2563EB),
+                  fontSize: context.rs(14),
                 ),
               ),
             ),
@@ -430,51 +493,30 @@ class _RecommendedSection extends StatelessWidget {
         const SizedBox(height: 12),
 
         SizedBox(
-          height: 100,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: const [
-              _SubjectCard(
-                icon: Icons.calculate_rounded,
-                title: 'Mathematics',
-                subtitle: 'Based on your test',
-                bgColor: Color(0xffEDF5FF),
-                iconColor: Color(0xff2563EB),
-              ),
-              SizedBox(width: 12),
-              _SubjectCard(
-                icon: Icons.menu_book_rounded,
-                title: 'English',
-                subtitle: 'Recommended',
-                bgColor: Color(0xffF4F0FF),
-                iconColor: Color(0xff7C3AED),
-              ),
-              SizedBox(width: 12),
-              _SubjectCard(
-                icon: Icons.science_rounded,
-                title: 'Physics',
-                subtitle: 'Recommended',
-                bgColor: Color(0xffEDFDF6),
-                iconColor: Color(0xff10B981),
-              ),
-              SizedBox(width: 12),
-              _SubjectCard(
-                icon: Icons.biotech_rounded,
-                title: 'Chemistry',
-                subtitle: 'Recommended',
-                bgColor: Color(0xffFFF1F2),
-                iconColor: Color(0xffE11D48),
-              ),
-              SizedBox(width: 12),
-              _SubjectCard(
-                icon: Icons.eco_rounded,
-                title: 'Biology',
-                subtitle: 'Recommended',
-                bgColor: Color(0xffF0FDF4),
-                iconColor: Color(0xff16A34A),
-              ),
-            ],
-          ),
+          height: context.isTablet ? 112 : 100,
+          child: subjects.isEmpty
+              ? const SizedBox.shrink()
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: subjects.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (_, i) {
+                    final s = subjects[i];
+                    return _SubjectCard(
+                      icon: s.icon,
+                      title: s.name,
+                      subtitle: 'Tap to learn',
+                      bgColor: s.color.withValues(alpha: 0.10),
+                      iconColor: s.color,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              TutorTopicsPage(initialSubjectName: s.name),
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -487,6 +529,7 @@ class _SubjectCard extends StatelessWidget {
   final String subtitle;
   final Color bgColor;
   final Color iconColor;
+  final VoidCallback? onTap;
 
   const _SubjectCard({
     required this.icon,
@@ -494,63 +537,68 @@ class _SubjectCard extends StatelessWidget {
     required this.subtitle,
     required this.bgColor,
     required this.iconColor,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 140,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: context.isTablet ? 160 : 140,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: context.isTablet ? 54 : 48,
+              height: context.isTablet ? 54 : 48,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                color: iconColor,
+                size: context.isTablet ? 30 : 26,
+              ),
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 26,
-            ),
-          ),
 
-          const SizedBox(width: 10),
+            const SizedBox(width: 10),
 
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: context.rs(14),
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 2),
+                  const SizedBox(height: 2),
 
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xff64748B),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: context.rs(11),
+                      color: const Color(0xff64748B),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -560,11 +608,18 @@ class _SubjectCard extends StatelessWidget {
 // TODAY'S CHALLENGE
 // ======================================================
 
-class _TodayChallengeCard extends StatelessWidget {
+class _TodayChallengeCard extends ConsumerWidget {
   const _TodayChallengeCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summary = ref.watch(dailySummaryProvider).valueOrNull;
+    final target = summary?.goalTarget ?? 20;
+    final answered = summary?.goalAnswered ?? 0;
+    final remaining = (target - answered).clamp(0, target);
+    final done = remaining == 0;
+    final progress = target <= 0 ? 0.0 : (answered / target).clamp(0.0, 1.0);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -576,83 +631,68 @@ class _TodayChallengeCard extends StatelessWidget {
         children: [
           Image.asset(
             'assets/illustrations/today_target.png',
-            width: 24,
-            height: 24,
+            width: context.isTablet ? 28 : 24,
+            height: context.isTablet ? 28 : 24,
           ),
 
           const SizedBox(height: 8),
 
-          const Text(
-            'Today\'s Challenge',
+          Text(
+            "Today's Challenge",
             maxLines: 2,
             style: TextStyle(
               fontWeight: FontWeight.w800,
-              fontSize: 15,
+              fontSize: context.rs(15),
             ),
           ),
 
           const SizedBox(height: 6),
 
-          const Text(
-            'Answer 10 questions and keep your streak alive.',
-            maxLines: 2,
+          Text(
+            done
+                ? "Nice - today's goal is done. Keep the streak going!"
+                : 'Answer $remaining more question${remaining == 1 ? '' : 's'} to hit today’s goal.',
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Color(0xff64748B),
-              fontSize: 12,
+              color: const Color(0xff64748B),
+              fontSize: context.rs(12),
             ),
           ),
 
           const SizedBox(height: 12),
 
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  '⭐ +20 XP',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  '🪙 +10 Coins',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: Colors.white,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(Color(0xffF59E0B)),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$answered / $target',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: context.rs(11),
+              color: const Color(0xff92400E),
+            ),
           ),
 
           const SizedBox(height: 14),
 
           SizedBox(
             width: double.infinity,
-            height: 42,
+            height: context.isTablet ? 46 : 42,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const TutorTopicsPage(),
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xff2563EB),
                 padding: EdgeInsets.zero,
@@ -660,12 +700,12 @@ class _TodayChallengeCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'Start Challenge',
+              child: Text(
+                done ? 'Keep Learning' : 'Start a Lesson',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: context.rs(13),
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
@@ -682,11 +722,20 @@ class _TodayChallengeCard extends StatelessWidget {
 // LEADERBOARD
 // ======================================================
 
-class _LeaderboardCard extends StatelessWidget {
+const _medals = ['🥇', '🥈', '🥉'];
+
+class _LeaderboardCard extends ConsumerWidget {
   const _LeaderboardCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final data = ref.watch(leaderboardProvider).valueOrNull;
+    final top = data?.top.take(3).toList() ?? const <LeaderboardEntry>[];
+    final me = data?.me;
+    // Only show the "You" row when the student isn't already in the top 3.
+    final showMeRow =
+        me != null && !top.any((e) => e.isMe);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -698,14 +747,14 @@ class _LeaderboardCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Leaderboard',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
-                    fontSize: 15,
+                    fontSize: context.rs(15),
                   ),
                 ),
               ),
@@ -715,13 +764,15 @@ class _LeaderboardCard extends StatelessWidget {
                   minimumSize: const Size(0, 0),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                onPressed: () {},
-                child: const Text(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const LeaderboardPage()),
+                ),
+                child: Text(
                   'View All',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: Color(0xff2563EB),
-                    fontSize: 12,
+                    color: const Color(0xff2563EB),
+                    fontSize: context.rs(12),
                   ),
                 ),
               ),
@@ -730,33 +781,45 @@ class _LeaderboardCard extends StatelessWidget {
 
           const SizedBox(height: 6),
 
-          _leaderRow('🥇', 'Aisha', '3420 XP'),
-          _leaderRow('🥈', 'David', '3180 XP'),
-          _leaderRow('🥉', 'Grace', '2940 XP'),
-
-          Container(
-            margin: const EdgeInsets.only(top: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xffEDF5FF),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xffCFE1FF),
+          if (top.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'No rankings yet.',
+                style: TextStyle(
+                  fontSize: context.rs(12),
+                  color: const Color(0xff94A3B8),
+                ),
               ),
             ),
-            child: _leaderRow(
-              '👤',
-              'You',
-              '100 XP',
-              highlight: true,
+          for (final e in top)
+            _leaderRow(context, _medals[e.rank - 1], e.name, '${e.xp} XP',
+                highlight: e.isMe),
+
+          if (showMeRow)
+            Container(
+              margin: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xffEDF5FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xffCFE1FF)),
+              ),
+              child: _leaderRow(
+                context,
+                '#${me.rank}',
+                'You',
+                '${me.xp} XP',
+                highlight: true,
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
   Widget _leaderRow(
+    BuildContext context,
     String medal,
     String name,
     String score, {
@@ -768,7 +831,7 @@ class _LeaderboardCard extends StatelessWidget {
         children: [
           Text(
             medal,
-            style: const TextStyle(fontSize: 15),
+            style: TextStyle(fontSize: context.rs(15)),
           ),
 
           const SizedBox(width: 8),
@@ -780,7 +843,7 @@ class _LeaderboardCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontWeight: highlight ? FontWeight.w800 : FontWeight.w600,
-                fontSize: 12,
+                fontSize: context.rs(12),
               ),
             ),
           ),
@@ -791,7 +854,7 @@ class _LeaderboardCard extends StatelessWidget {
             score,
             style: TextStyle(
               fontWeight: highlight ? FontWeight.w800 : FontWeight.w600,
-              fontSize: 11,
+              fontSize: context.rs(11),
               color: highlight
                   ? const Color(0xff2563EB)
                   : const Color(0xff475569),
@@ -807,11 +870,20 @@ class _LeaderboardCard extends StatelessWidget {
 // REWARD PROGRESS
 // ======================================================
 
-class _RewardsProgressCard extends StatelessWidget {
+class _RewardsProgressCard extends ConsumerWidget {
   const _RewardsProgressCard();
 
+  // Cheapest reward in the catalogue (Airtime, 500 coins) - the next thing
+  // the student is working toward.
+  static const _nextReward = 'Airtime';
+  static const _nextRewardCost = 500;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coins = ref.watch(userProfileProvider).valueOrNull?.coins ?? 0;
+    final progress = (coins / _nextRewardCost).clamp(0.0, 1.0);
+    final remaining = (_nextRewardCost - coins).clamp(0, _nextRewardCost);
+
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -821,33 +893,33 @@ class _RewardsProgressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '🎁 Rewards Progress',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: context.rs(18),
               fontWeight: FontWeight.w800,
             ),
           ),
 
           const SizedBox(height: 12),
 
-          const Text(
-            'Next Reward',
+          Text(
+            remaining == 0 ? 'Ready to claim' : 'Next Reward',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: context.rs(14),
               fontWeight: FontWeight.w600,
-              color: Color(0xff16A34A),
+              color: const Color(0xff16A34A),
             ),
           ),
 
           const SizedBox(height: 4),
 
-          const Text(
-            'Airtime',
+          Text(
+            _nextReward,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: context.rs(16),
               fontWeight: FontWeight.w700,
-              color: Color(0xff0F172A),
+              color: const Color(0xff0F172A),
             ),
           ),
 
@@ -856,8 +928,8 @@ class _RewardsProgressCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(
-              value: 0.5,
-              minHeight: 12,
+              value: progress,
+              minHeight: context.isTablet ? 14 : 12,
               backgroundColor: Colors.white,
               color: const Color(0xff16A34A),
             ),
@@ -865,16 +937,29 @@ class _RewardsProgressCard extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          const Text(
-            '50 / 100 Coins',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '$coins / $_nextRewardCost Coins',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: context.rs(14),
+                ),
+              ),
+              if (remaining > 0)
+                Text(
+                  '$remaining coins away',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: context.rs(12),
+                    color: const Color(0xff16A34A),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
     );
   }
 }
-

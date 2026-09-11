@@ -8,9 +8,8 @@ import '../../../auth/controllers/auth_controller.dart';
 import 'dashboard_page.dart';
 import 'subjects_page.dart';
 import 'competitions_page.dart';
-import 'leaderboard_page.dart';
+import 'rewards_page.dart';
 import 'profile_page.dart';
-import '../../../tutor/presentation/pages/tutor_topics_page.dart';
 
 class DashboardShell extends ConsumerStatefulWidget {
   const DashboardShell({super.key});
@@ -25,9 +24,8 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
   final _pages = const [
     DashboardPage(),
     SubjectsPage(),
-    TutorTopicsPage(),
     CompetitionsPage(),
-    LeaderboardPage(),
+    RewardsPage(),
     ProfilePage(),
   ];
 
@@ -83,10 +81,13 @@ class _EduQuestNavBar extends StatelessWidget {
 
   static const _items = [
     _NavItem(icon: Icons.home_rounded, label: 'Home'),
-    _NavItem(icon: Icons.menu_book_rounded, label: 'Subjects'),
-    _NavItem(icon: Icons.auto_awesome_rounded, label: 'AI Tutor'),
-    _NavItem(icon: Icons.emoji_events_rounded, label: 'Compete'),
-    _NavItem(icon: Icons.leaderboard_rounded, label: 'Ranking'),
+    _NavItem(icon: Icons.menu_book_rounded, label: 'Learn'),
+    _NavItem(
+      icon: Icons.sports_martial_arts_rounded,
+      assetPath: 'assets/illustrations/crossed_swords.png',
+      label: 'Arena',
+    ),
+    _NavItem(icon: Icons.card_giftcard_rounded, label: 'Rewards'),
     _NavItem(icon: Icons.person_rounded, label: 'Profile'),
   ];
 
@@ -128,13 +129,27 @@ class _EduQuestNavBar extends StatelessWidget {
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Icon(
-                          item.icon,
-                          color: isActive
-                              ? AppColors.primary
-                              : AppColors.subtitle,
-                          size: 24,
-                        ),
+                        child: item.assetPath != null
+                            ? ColorFiltered(
+                                colorFilter: ColorFilter.mode(
+                                  isActive
+                                      ? AppColors.primary
+                                      : AppColors.subtitle,
+                                  BlendMode.srcIn,
+                                ),
+                                child: Image.asset(
+                                  item.assetPath!,
+                                  width: 24,
+                                  height: 24,
+                                ),
+                              )
+                            : Icon(
+                                item.icon,
+                                color: isActive
+                                    ? AppColors.primary
+                                    : AppColors.subtitle,
+                                size: 24,
+                              ),
                       ),
                       const SizedBox(height: 2),
                       AnimatedDefaultTextStyle(
@@ -164,6 +179,7 @@ class _EduQuestNavBar extends StatelessWidget {
 
 class _NavItem {
   final IconData icon;
+  final String? assetPath;
   final String label;
-  const _NavItem({required this.icon, required this.label});
+  const _NavItem({required this.icon, this.assetPath, required this.label});
 }

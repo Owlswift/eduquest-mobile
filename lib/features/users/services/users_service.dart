@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/token_storage.dart';
+import '../../dashboard/models/daily_summary.dart';
+import '../../dashboard/models/leaderboard.dart';
 
 class UsersService {
   final _dio = DioClient().dio;
@@ -21,6 +23,26 @@ class UsersService {
       options: await _authOptions(),
     );
     return response.data;
+  }
+
+  // ─── Daily summary (streak strip + today's goal) ─────────────────────────────
+
+  Future<DailySummary> getDailySummary() async {
+    final response = await _dio.get(
+      '/users/daily-summary',
+      options: await _authOptions(),
+    );
+    return DailySummary.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  // ─── Leaderboard (all-time, by XP) ──────────────────────────────────────────
+
+  Future<LeaderboardData> getLeaderboard() async {
+    final response = await _dio.get(
+      '/users/leaderboard',
+      options: await _authOptions(),
+    );
+    return LeaderboardData.fromJson(response.data as Map<String, dynamic>);
   }
 
   // ─── Update profile (classLevel, state, subjects) ────────────────────────────

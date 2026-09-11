@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local dev helper (pty-wrapped flutter run for hot reload)
+.pty_runner.py

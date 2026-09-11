@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../models/onboarding_model.dart';
+import '../../../../core/widgets/animations/floating_bubble.dart';
 
 class OnboardingPage extends StatefulWidget {
   final OnboardingModel page;
 
-  const OnboardingPage({
-    super.key,
-    required this.page,
-  });
+  const OnboardingPage({super.key, required this.page});
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -30,20 +28,12 @@ class _OnboardingPageState extends State<OnboardingPage>
       duration: const Duration(milliseconds: 700),
     );
 
-    fade = CurvedAnimation(
-      parent: controller,
-      curve: Curves.easeOut,
-    );
+    fade = CurvedAnimation(parent: controller, curve: Curves.easeOut);
 
     slide = Tween(
       begin: const Offset(0, .08),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: controller,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: controller, curve: Curves.easeOutCubic));
 
     controller.forward();
   }
@@ -71,7 +61,6 @@ class _OnboardingPageState extends State<OnboardingPage>
               //------------------------------------------------
               // Illustration Section
               //------------------------------------------------
-
               SizedBox(
                 height: 360,
                 child: Stack(
@@ -82,34 +71,37 @@ class _OnboardingPageState extends State<OnboardingPage>
                       height: 260,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: accent.withOpacity(.08),
+                        color: accent.withValues(alpha: 0.08),
                       ),
                     ),
 
                     Positioned(
                       top: 18,
                       right: 40,
-                      child: _FloatingBubble(
+                      child: FloatingBubble(
                         icon: Icons.star_rounded,
                         color: Colors.orange,
+                        phase: 0,
                       ),
                     ),
 
                     Positioned(
                       left: 25,
                       top: 90,
-                      child: _FloatingBubble(
+                      child: FloatingBubble(
                         icon: Icons.lightbulb,
                         color: Colors.amber,
+                        phase: 0.3,
                       ),
                     ),
 
                     Positioned(
                       bottom: 35,
                       right: 18,
-                      child: _FloatingBubble(
+                      child: FloatingBubble(
                         icon: Icons.school,
                         color: accent,
+                        phase: 0.7,
                       ),
                     ),
 
@@ -117,8 +109,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                       tag: widget.page.title,
                       child: Transform.scale(
                         scale: 2,
-                        child: Image.asset(
-                        widget.page.illustration),
+                        child: Image.asset(widget.page.illustration),
                       ),
                     ),
                     // Hero(
@@ -133,11 +124,9 @@ class _OnboardingPageState extends State<OnboardingPage>
                 ),
               ),
 
-
               //------------------------------------------------
               // Round Icon Badge
               //------------------------------------------------
-
               Container(
                 height: 72,
                 width: 72,
@@ -147,16 +136,12 @@ class _OnboardingPageState extends State<OnboardingPage>
                   boxShadow: [
                     BoxShadow(
                       blurRadius: 20,
-                      color: Colors.black.withOpacity(.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       offset: const Offset(0, 10),
-                    )
+                    ),
                   ],
                 ),
-                child: Icon(
-                  widget.page.icon,
-                  size: 36,
-                  color: accent,
-                ),
+                child: Icon(widget.page.icon, size: 36, color: accent),
               ),
 
               const SizedBox(height: 28),
@@ -164,7 +149,6 @@ class _OnboardingPageState extends State<OnboardingPage>
               //------------------------------------------------
               // Title
               //------------------------------------------------
-
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
@@ -183,9 +167,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                     ),
                     TextSpan(
                       text: widget.page.highlighted,
-                      style: TextStyle(
-                        color: accent,
-                      ),
+                      style: TextStyle(color: accent),
                     ),
                   ],
                 ),
@@ -196,10 +178,8 @@ class _OnboardingPageState extends State<OnboardingPage>
               //------------------------------------------------
               // Description
               //------------------------------------------------
-
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
                   widget.page.description,
                   textAlign: TextAlign.center,
@@ -214,50 +194,6 @@ class _OnboardingPageState extends State<OnboardingPage>
               const Spacer(),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FloatingBubble extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-
-  const _FloatingBubble({
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: -6, end: 6),
-      duration: const Duration(seconds: 2),
-      curve: Curves.easeInOut,
-      builder: (_, value, child) {
-        return Transform.translate(
-          offset: Offset(0, value),
-          child: child,
-        );
-      },
-      onEnd: () {},
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 16,
-              color: Colors.black.withOpacity(.08),
-            ),
-          ],
-        ),
-        child: Icon(
-          icon,
-          color: color,
         ),
       ),
     );

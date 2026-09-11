@@ -20,7 +20,8 @@ class AppTextStyles {
 
   static final body = GoogleFonts.poppins(
     fontSize: 16,
-    color: AppColors.subtitle,
+    fontWeight: FontWeight.w500,
+    color: AppColors.text,
   );
 
   static final button = GoogleFonts.poppins(

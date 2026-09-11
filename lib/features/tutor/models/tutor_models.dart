@@ -27,6 +27,32 @@ class CurriculumTopicSummary {
   }
 }
 
+/// A topic with an unfinished tutor session, as returned by
+/// GET /tutor/continue-learning - backs the dashboard's "Continue Learning"
+/// list, which should only show started-but-not-completed topics.
+class InProgressTopic {
+  final String sessionId;
+  final String state;
+  final int progressPercent;
+  final CurriculumTopicSummary topic;
+
+  InProgressTopic({
+    required this.sessionId,
+    required this.state,
+    required this.progressPercent,
+    required this.topic,
+  });
+
+  factory InProgressTopic.fromJson(Map<String, dynamic> json) {
+    return InProgressTopic(
+      sessionId: json['sessionId'] ?? '',
+      state: json['state'] ?? '',
+      progressPercent: json['progressPercent'] ?? 0,
+      topic: CurriculumTopicSummary.fromJson(json['topic'] as Map<String, dynamic>),
+    );
+  }
+}
+
 /// One renderable content block within a tutor message. The backend already
 /// decides which block types to use (explanation/analogy/quiz/diagram/etc.) -
 /// the client's only job is to render each type appropriately.

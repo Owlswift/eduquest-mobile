@@ -37,6 +37,20 @@ class TutorService {
         .toList();
   }
 
+  /// Topics the student has started but not finished - one per topic, most
+  /// recently active first. Never returns the full curriculum.
+  Future<List<InProgressTopic>> getContinueLearning({String? subjectId}) async {
+    final response = await _dio.get(
+      '/tutor/continue-learning',
+      queryParameters: {if (subjectId != null) 'subjectId': subjectId},
+      options: await _authOptions(),
+    );
+    final List<dynamic> list = response.data;
+    return list
+        .map((t) => InProgressTopic.fromJson(t as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<TutorTurnResult> startSession({
     required String subjectId,
     required String classLevel,

@@ -3,6 +3,8 @@ import '../../models/onboarding_model.dart';
 import '../widgets/onboarding_page.dart';
 import '../../../auth/presentation/pages/login_page.dart';
 
+import '../../../../core/widgets/common/decorative_background.dart';
+
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -60,9 +62,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const LoginPage(),
-        ),
+        MaterialPageRoute(builder: (_) => const LoginPage()),
       );
     }
   }
@@ -85,21 +85,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-
             /// Decorative Background
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: _BackgroundPainter(
-                    page.accentColor.withValues(alpha: 0.06),
-                  ),
-                ),
-              ),
+            DecorativeBackground(
+              color: page.accentColor.withValues(alpha: 0.06),
             ),
 
             Column(
               children: [
-
                 const SizedBox(height: 10),
 
                 /// Skip Button
@@ -108,7 +100,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-
                       InkWell(
                         borderRadius: BorderRadius.circular(18),
                         onTap: skip,
@@ -122,10 +113,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             borderRadius: BorderRadius.circular(18),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(.08),
+                                color: Colors.black.withValues(alpha: 0.08),
                                 blurRadius: 15,
-                                offset: const Offset(0,6),
-                              )
+                                offset: const Offset(0, 6),
+                              ),
                             ],
                           ),
                           child: const Text(
@@ -137,7 +128,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ),
                       ),
-
                     ],
                   ),
                 ),
@@ -145,25 +135,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 15),
 
                 Expanded(
-
                   child: PageView.builder(
-
                     controller: _pageController,
 
                     physics: const BouncingScrollPhysics(),
 
                     onPageChanged: (index) {
-
                       setState(() {
                         _currentPage = index;
                       });
-
                     },
 
                     itemCount: pages.length,
 
                     itemBuilder: (context, index) {
-
                       return AnimatedSwitcher(
                         duration: const Duration(milliseconds: 450),
                         child: OnboardingPage(
@@ -171,217 +156,92 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           page: pages[index],
                         ),
                       );
-
                     },
-
                   ),
-
                 ),
 
                 /// Bottom Controls
-
                 Padding(
-
                   padding: const EdgeInsets.fromLTRB(28, 10, 28, 34),
 
                   child: Column(
-
                     children: [
-
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
 
-                        mainAxisAlignment:
-                            MainAxisAlignment.center,
+                        children: List.generate(pages.length, (index) {
+                          bool active = index == _currentPage;
 
-                        children: List.generate(
-
-                          pages.length,
-
-                          (index) {
-
-                            bool active =
-                                index == _currentPage;
-
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              margin: const EdgeInsets.symmetric(horizontal: 6),
-                              width: active ? 12 : 10,
-                              height: active ? 12 : 10,
-                              decoration: BoxDecoration(
-                                color: active
-                                    ? page.accentColor
-                                    : Colors.grey.shade300,
-                                shape: BoxShape.circle,
-                              ),
-                            );
-
-                          },
-
-                        ),
-
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            margin: const EdgeInsets.symmetric(horizontal: 6),
+                            width: active ? 12 : 10,
+                            height: active ? 12 : 10,
+                            decoration: BoxDecoration(
+                              color: active
+                                  ? page.accentColor
+                                  : Colors.grey.shade300,
+                              shape: BoxShape.circle,
+                            ),
+                          );
+                        }),
                       ),
 
                       const SizedBox(height: 28),
 
                       SizedBox(
-
                         width: double.infinity,
-
                         height: 58,
-
-                        child: ElevatedButton(
-
-                          onPressed: nextPage,
-
-                          style: ElevatedButton.styleFrom(
-
-                            backgroundColor:
-                                const Color(0xff1453FF),
-
-                            elevation: 0,
-
-                            shape: RoundedRectangleBorder(
-
-                              borderRadius:
-                                  BorderRadius.circular(18),
-
-                            ),
-
-                          ),
-
-                          child: Row(
-
-                            mainAxisAlignment:
-                                MainAxisAlignment.center,
-
-                            children: [
-
-                              Text(
-
-                                _currentPage ==
-                                        pages.length - 1
-                                    ? "Get Started"
-                                    : "Next",
-
-                                style: const TextStyle(
-
-                                  fontSize: 20,
-
-                                  fontWeight: FontWeight.w700,
-
-                                  color: Colors.white,
-
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: nextPage,
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF2563EB,
+                                  ).withValues(alpha: 0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
                                 ),
-
-                              ),
-
-                              const SizedBox(width: 12),
-
-                              const Icon(
-                                Icons.arrow_forward,
-                                color: Colors.white,
-                              ),
-
-                            ],
-
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _currentPage == pages.length - 1
+                                      ? "Get Started"
+                                      : "Next",
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Icon(
+                                  Icons.arrow_forward,
+                                  color: Colors.white,
+                                ),
+                              ],
+                            ),
                           ),
-
                         ),
-
                       ),
-
                     ],
-
                   ),
-
                 ),
-
               ],
-
             ),
-
           ],
-
         ),
-
       ),
-
-    );
-
-  }
-
-}
-
-class _BackgroundPainter extends CustomPainter {
-  final Color color;
-
-  _BackgroundPainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-
-    path.moveTo(0, size.height * .82);
-
-    path.quadraticBezierTo(
-      size.width * .20,
-      size.height * .72,
-      size.width * .50,
-      size.height * .82,
-    );
-
-    path.quadraticBezierTo(
-      size.width * .80,
-      size.height * .92,
-      size.width,
-      size.height * .82,
-    );
-
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-
-    path.close();
-
-    canvas.drawPath(path, paint);
-
-    final circlePaint = Paint()
-      ..color = color.withOpacity(.45);
-
-    canvas.drawCircle(
-      Offset(size.width * .88, size.height * .16),
-      28,
-      circlePaint,
-    );
-
-    canvas.drawCircle(
-      Offset(size.width * .18, size.height * .22),
-      8,
-      circlePaint,
-    );
-
-    canvas.drawCircle(
-      Offset(size.width * .72, size.height * .30),
-      6,
-      circlePaint,
-    );
-
-    canvas.drawCircle(
-      Offset(size.width * .12, size.height * .56),
-      4,
-      circlePaint,
-    );
-
-    canvas.drawCircle(
-      Offset(size.width * .92, size.height * .60),
-      5,
-      circlePaint,
     );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

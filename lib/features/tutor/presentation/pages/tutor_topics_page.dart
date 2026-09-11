@@ -10,13 +10,19 @@ import '../../../subjects/services/subjects_service.dart';
 import '../../controllers/tutor_controller.dart';
 import '../../models/tutor_models.dart';
 import '../../services/tutor_service.dart';
+import '../widgets/tutor_header.dart';
 import 'tutor_chat_page.dart';
 
 /// Entry point for the AI Tutor: pick a subject, then a topic within it.
 /// Starting a lesson creates a new TutorSession server-side and pushes into
 /// TutorChatPage for the actual conversation.
 class TutorTopicsPage extends ConsumerStatefulWidget {
-  const TutorTopicsPage({super.key});
+  /// When set, the subject list is skipped and the matching subject's
+  /// topics are opened directly - lets other screens (e.g. the Learn
+  /// screen's subject grid) jump straight into a lesson.
+  final String? initialSubjectName;
+
+  const TutorTopicsPage({super.key, this.initialSubjectName});
 
   @override
   ConsumerState<TutorTopicsPage> createState() => _TutorTopicsPageState();
@@ -34,10 +40,27 @@ class _TutorTopicsPageState extends ConsumerState<TutorTopicsPage> {
   bool _startingSession = false;
   String? _error;
 
+  // True once we've auto-selected a subject from [initialSubjectName],
+  // meaning the subject list was never shown - so the topic list's back
+  // button should leave this screen entirely rather than reveal it.
+  bool _skippedSubjectList = false;
+
   @override
   void initState() {
     super.initState();
     _loadSubjects();
+  }
+
+  SubjectModel? _findInitialSubject(List<SubjectModel> subjects) {
+    final wanted = widget.initialSubjectName?.trim().toLowerCase();
+    if (wanted == null || wanted.isEmpty) return null;
+    for (final subject in subjects) {
+      final name = subject.name.trim().toLowerCase();
+      if (name == wanted || name.contains(wanted) || wanted.contains(name)) {
+        return subject;
+      }
+    }
+    return null;
   }
 
   String get _classLevel {
@@ -56,6 +79,11 @@ class _TutorTopicsPageState extends ConsumerState<TutorTopicsPage> {
         _subjects = subjects;
         _loadingSubjects = false;
       });
+      final initial = _findInitialSubject(subjects);
+      if (initial != null && mounted) {
+        _skippedSubjectList = true;
+        await _selectSubject(initial);
+      }
     } catch (_) {
       setState(() {
         _loadingSubjects = false;
@@ -141,12 +169,20 @@ class _TutorTopicsPageState extends ConsumerState<TutorTopicsPage> {
     if (_loadingSubjects) {
       return const Center(child: CircularProgressIndicator());
     }
+    final canPop = Navigator.of(context).canPop();
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text('AI Tutor', style: AppTextStyles.headline),
+        TutorHeader(
+          title: 'AI Tutor',
+          onBack: canPop ? () => Navigator.of(context).pop() : null,
+        ),
         const SizedBox(height: 4),
-        Text('Pick a subject to start a lesson', style: AppTextStyles.body),
+        Text(
+          'Pick a subject to start a lesson',
+          textAlign: canPop ? TextAlign.center : TextAlign.start,
+          style: AppTextStyles.body,
+        ),
         const SizedBox(height: 20),
         if (_error != null) _errorBanner(_error!),
         for (final subject in _subjects ?? const <SubjectModel>[])
@@ -194,17 +230,16 @@ class _TutorTopicsPageState extends ConsumerState<TutorTopicsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 20, 0),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () => setState(() => _selectedSubject = null),
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-              Expanded(
-                child: Text(subject.name, style: AppTextStyles.title, overflow: TextOverflow.ellipsis),
-              ),
-            ],
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          child: TutorHeader(
+            title: subject.name,
+            onBack: () {
+              if (_skippedSubjectList) {
+                Navigator.of(context).pop();
+              } else {
+                setState(() => _selectedSubject = null);
+              }
+            },
           ),
         ),
         Expanded(
@@ -370,3 +405,4 @@ class _AssessmentNoticeSheet extends StatelessWidget {
     );
   }
 }
+
