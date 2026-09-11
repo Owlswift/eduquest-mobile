@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../../auth/controllers/auth_controller.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -24,15 +25,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // had already navigated away and been disposed. initState() runs once,
     // and the mounted check below guards the one case that still matters:
     // the app being backgrounded/torn down during the delay.
-    Future.delayed(const Duration(seconds: AppConstants.splashDuration), () {
-      if (!mounted) return;
-      final authState = ref.read(authControllerProvider);
-      if (authState.token != null) {
-        context.go('/home');
-      } else {
-        context.go('/onboarding');
-      }
-    });
+    Future.delayed(
+      const Duration(seconds: AppConstants.splashDuration),
+      () async {
+        if (!mounted) return;
+        // Storage is the source of truth for "is there a session"; the
+        // auth provider populates it asynchronously and could still be
+        // mid-flight here.
+        final token = ref.read(authControllerProvider).token ??
+            await TokenStorage().getToken();
+        if (!mounted) return;
+        context.go(token != null ? '/home' : '/onboarding');
+      },
+    );
   }
 
   @override

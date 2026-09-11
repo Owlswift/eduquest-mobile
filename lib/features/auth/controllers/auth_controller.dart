@@ -54,13 +54,17 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> _restoreSession() async {
     final token = await _storage.getToken();
-    if (token != null) {
-      try {
-        final user = await _service.getProfile();
-        state = state.copyWith(token: token, user: user);
-      } catch (e) {
-        state = state.copyWith(token: token);
-      }
+    if (token == null) return;
+
+    // Restore the session immediately from the stored token so routing
+    // decisions (splash -> home vs onboarding) don't race a network call.
+    // The profile then fills in in the background.
+    state = state.copyWith(token: token);
+    try {
+      final user = await _service.getProfile();
+      state = state.copyWith(token: token, user: user);
+    } catch (_) {
+      // Offline / server unreachable: keep the token-only session.
     }
   }
 
