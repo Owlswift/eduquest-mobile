@@ -8,13 +8,22 @@ import '../../../../core/constants/app_radius.dart';
 import '../../controllers/leaderboard_provider.dart';
 import '../../models/leaderboard.dart';
 
-/// All-time student ranking by total XP. Backed by GET /users/leaderboard.
-class LeaderboardPage extends ConsumerWidget {
+/// Student ranking by XP - all-time total, or earned within the last
+/// 7/30 days. Backed by GET /users/leaderboard?period=.
+class LeaderboardPage extends ConsumerStatefulWidget {
   const LeaderboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(leaderboardProvider);
+  ConsumerState<LeaderboardPage> createState() => _LeaderboardPageState();
+}
+
+class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
+  static const _periods = [('all', 'All-time'), ('weekly', 'This week'), ('monthly', 'This month')];
+  String _period = 'all';
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(leaderboardForPeriodProvider(_period));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
@@ -27,28 +36,81 @@ class LeaderboardPage extends ConsumerWidget {
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20),
         ),
       ),
-      body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Couldn't load the leaderboard.",
-                  style: AppTextStyles.body.copyWith(color: AppColors.subtitle),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+            child: Row(
+              children: _periods
+                  .map((p) => Expanded(child: _PeriodChip(
+                        label: p.$2,
+                        selected: _period == p.$1,
+                        onTap: () => setState(() => _period = p.$1),
+                      )))
+                  .toList(),
+            ),
+          ),
+          Expanded(
+            child: async.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "Couldn't load the leaderboard.",
+                        style: AppTextStyles.body.copyWith(color: AppColors.subtitle),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: () => ref.invalidate(leaderboardForPeriodProvider(_period)),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () => ref.invalidate(leaderboardProvider),
-                  child: const Text('Retry'),
-                ),
-              ],
+              ),
+              data: (data) => _LeaderboardBody(data: data, period: _period),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PeriodChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PeriodChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.medium),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.medium),
+            boxShadow: selected ? null : AppShadows.card,
+          ),
+          child: Text(
+            label,
+            style: AppTextStyles.body.copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              color: selected ? Colors.white : AppColors.subtitle,
             ),
           ),
         ),
-        data: (data) => _LeaderboardBody(data: data),
       ),
     );
   }
@@ -56,7 +118,8 @@ class LeaderboardPage extends ConsumerWidget {
 
 class _LeaderboardBody extends StatelessWidget {
   final LeaderboardData data;
-  const _LeaderboardBody({required this.data});
+  final String period;
+  const _LeaderboardBody({required this.data, required this.period});
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +129,10 @@ class _LeaderboardBody extends StatelessWidget {
     if (data.top.isEmpty) {
       return Center(
         child: Text(
-          'No rankings yet.',
+          period == 'all'
+              ? 'No rankings yet.'
+              : "No one has earned XP in this window yet - be the first!",
+          textAlign: TextAlign.center,
           style: AppTextStyles.body.copyWith(color: AppColors.subtitle),
         ),
       );

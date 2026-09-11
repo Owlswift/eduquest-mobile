@@ -38,9 +38,12 @@ class UsersService {
 
   // ─── Leaderboard (all-time, by XP) ──────────────────────────────────────────
 
-  Future<LeaderboardData> getLeaderboard() async {
+  /// [period]: 'all' (lifetime total), 'weekly' or 'monthly' (XP earned
+  /// in the last 7/30 days).
+  Future<LeaderboardData> getLeaderboard({String period = 'all'}) async {
     final response = await _dio.get(
       '/users/leaderboard',
+      queryParameters: {'period': period},
       options: await _authOptions(),
     );
     return LeaderboardData.fromJson(response.data as Map<String, dynamic>);
