@@ -18,6 +18,8 @@ import '../../../tutor/presentation/pages/tutor_chat_page.dart';
 import '../../../tutor/presentation/pages/tutor_topics_page.dart';
 import '../../../tutor/services/tutor_service.dart';
 import '../../../quiz/presentation/pages/quiz_play_page.dart';
+import '../../../notifications/controllers/notifications_provider.dart';
+import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../widgets/subject_icons.dart';
 
 /// Picks the closest hand-authored subject icon for a backend subjectId,
@@ -226,25 +228,7 @@ class _Hero extends StatelessWidget {
                   ],
                 ),
               ),
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  SvgPicture.string(bellIconSvg, width: 25, height: 25),
-                  Positioned(
-                    right: -1,
-                    top: -2,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF4338),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              const _HeroBell(),
               const SizedBox(width: 18),
               Container(
                 width: context.isTablet ? 68 : 58,
@@ -276,6 +260,47 @@ class _Hero extends StatelessWidget {
           child: const _StreakCard(),
         ),
       ],
+    );
+  }
+}
+
+// ─── Hero notification bell (small white icon on the gradient header) ─────────
+
+class _HeroBell extends ConsumerWidget {
+  const _HeroBell();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadNotificationCountProvider).valueOrNull ?? 0;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const NotificationsPage()),
+        );
+        ref.invalidate(unreadNotificationCountProvider);
+      },
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          SvgPicture.string(bellIconSvg, width: 25, height: 25),
+          if (unread > 0)
+            Positioned(
+              right: -1,
+              top: -2,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF4338),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

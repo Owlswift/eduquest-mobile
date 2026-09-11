@@ -9,6 +9,7 @@ import '../../controllers/subjects_provider.dart';
 import '../../controllers/user_profile_provider.dart';
 import '../../models/leaderboard.dart';
 import '../../../tutor/presentation/pages/tutor_topics_page.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 import 'competitions_page.dart';
 import 'leaderboard_page.dart';
 
@@ -127,22 +128,7 @@ class _DashboardHeader extends ConsumerWidget {
           ),
         ),
 
-        Container(
-          width: context.isTablet ? 56 : 48,
-          height: context.isTablet ? 56 : 48,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                blurRadius: 16,
-                color: Colors.black12,
-              ),
-            ],
-          ),
-          child: Icon(Icons.notifications_none_rounded,
-              size: context.isTablet ? 28 : 24),
-        ),
+        const NotificationBell(),
 
         const SizedBox(width: 12),
 
