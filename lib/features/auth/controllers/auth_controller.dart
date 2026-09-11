@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
 import '../../../core/storage/token_storage.dart';
+import '../../../core/push/push_registration_service.dart';
 
 // Add debug import
 import 'dart:developer' as developer;
@@ -66,6 +67,9 @@ class AuthController extends Notifier<AuthState> {
     } catch (_) {
       // Offline / server unreachable: keep the token-only session.
     }
+    // Fire-and-forget - re-registers this device's push token on every
+    // app start, in case it rotated since the last session.
+    PushRegistrationService().registerThisDevice();
   }
 
   // ─── Email/Password Login ──────────────────────────────────────────────────
@@ -82,6 +86,7 @@ class AuthController extends Notifier<AuthState> {
         return;
       }
       state = state.copyWith(loading: false, token: token, user: user, clearError: true);
+      PushRegistrationService().registerThisDevice();
     } on Exception catch (e) {
       final message = _parseError(e);
       state = state.copyWith(loading: false, error: message);
@@ -106,6 +111,7 @@ class AuthController extends Notifier<AuthState> {
         return;
       }
       state = state.copyWith(loading: false, token: token, user: user, clearError: true);
+      PushRegistrationService().registerThisDevice();
     } on Exception catch (e) {
       developer.log('Registration error: $e');
       final message = _parseError(e);
@@ -147,6 +153,7 @@ class AuthController extends Notifier<AuthState> {
       final hasCompletedProfile = _checkIfProfileComplete(user);
 
       state = state.copyWith(googleLoading: false, token: token, user: user, clearError: true);
+      PushRegistrationService().registerThisDevice();
       return hasCompletedProfile;
     } on Exception catch (e) {
       final message = _parseError(e);
@@ -176,6 +183,7 @@ class AuthController extends Notifier<AuthState> {
   // ─── Logout ────────────────────────────────────────────────────────────────
 
   Future<void> logout() async {
+    await PushRegistrationService().unregisterThisDevice(); // needs the auth token - before it's cleared
     await _service.googleSignOut(); // also clears Google session
     await _storage.deleteToken();
     state = const AuthState();

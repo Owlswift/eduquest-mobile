@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "972924786443",
+    "project_id": "eduquest-1d0df",
+    "storage_bucket": "eduquest-1d0df.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:972924786443:android:1fbe816416811f32b3f40e",
+        "android_client_info": {
+          "package_name": "com.eduquest.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkSH0o9ASatOIJstTBXQIhYfgNRn9da2Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
