@@ -10,7 +10,6 @@ import '../../../../core/constants/app_radius.dart';
 import '../../../competitions/controllers/competitions_provider.dart';
 import '../../../competitions/models/competition.dart';
 import '../../../competitions/presentation/pages/competition_leaderboard_page.dart';
-import '../../../competitions/services/competition_reminder_store.dart';
 import '../../../competitions/services/competitions_service.dart';
 
 class CompetitionsPage extends ConsumerStatefulWidget {
@@ -161,22 +160,22 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
   late Timer _timer;
   late Duration _remaining;
   bool _joining = false;
-  bool _reminderSet = false;
-  bool _reminderLoading = false;
-  final _reminderStore = CompetitionReminderStore();
+
+  /// Ongoing competitions count down to when they end; upcoming ones count
+  /// down to when they start - joining early is allowed, so the countdown
+  /// tells an already-joined student when things kick off.
+  DateTime get _countdownTarget =>
+      widget.competition.isOngoing ? widget.competition.endsAt : widget.competition.startsAt;
 
   @override
   void initState() {
     super.initState();
-    _remaining = widget.competition.endsAt.difference(DateTime.now());
+    _remaining = _countdownTarget.difference(DateTime.now());
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() {
-        _remaining = widget.competition.endsAt.difference(DateTime.now());
+        _remaining = _countdownTarget.difference(DateTime.now());
       });
-    });
-    _reminderStore.isSet(widget.competition.id).then((set) {
-      if (mounted) setState(() => _reminderSet = set);
     });
   }
 
@@ -213,37 +212,14 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
     );
   }
 
-  Future<void> _toggleReminder() async {
-    setState(() => _reminderLoading = true);
-    final nowSet = await _reminderStore.toggle(widget.competition.id);
-    if (!mounted) return;
-    setState(() {
-      _reminderSet = nowSet;
-      _reminderLoading = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          nowSet
-              ? "Reminder set - we'll flag it here when \"${widget.competition.title}\" starts."
-              : 'Reminder cancelled.',
-        ),
-      ),
-    );
-  }
-
   /// True once there's nothing left to *do* on this button - already
-  /// joined (view results instead) or a reminder is already set - which
-  /// gets the quieter white/outlined treatment instead of solid blue.
-  bool get _isDone => widget.competition.isOngoing
-      ? widget.competition.isJoined
-      : _reminderSet;
+  /// joined, so it gets the quieter white/outlined treatment instead of
+  /// solid blue.
+  bool get _isDone => widget.competition.isJoined;
 
   String get _buttonLabel {
-    if (!widget.competition.isOngoing) {
-      return _reminderSet ? 'Reminder Set ✓' : 'Notify Me';
-    }
-    return widget.competition.isJoined ? 'View Leaderboard' : 'Join Now';
+    if (!widget.competition.isJoined) return 'Join Now';
+    return widget.competition.isOngoing ? 'View Leaderboard' : 'Joined ✓';
   }
 
   @override
@@ -321,33 +297,33 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
                     ),
                   ],
                 ),
-                if (widget.competition.isOngoing) ...[
-                  const Gap(14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.timer_rounded,
-                            color: Colors.white, size: 16),
-                        const SizedBox(width: 6),
-                        Text(
-                          timeStr,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
+                const Gap(14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.timer_rounded,
+                          color: Colors.white, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        widget.competition.isOngoing
+                            ? 'Ends in $timeStr'
+                            : 'Starts in $timeStr',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -394,13 +370,13 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: (_joining || _reminderLoading)
+                    onPressed: _joining
                         ? null
-                        : widget.competition.isOngoing
-                            ? (widget.competition.isJoined
+                        : !widget.competition.isJoined
+                            ? _join
+                            : widget.competition.isOngoing
                                 ? _openLeaderboard
-                                : _join)
-                            : _toggleReminder,
+                                : null, // Already joined, waiting for it to start.
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isDone ? Colors.white : AppColors.primary,
                       foregroundColor: _isDone ? AppColors.primary : Colors.white,
@@ -413,7 +389,7 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
                             BorderRadius.circular(AppRadius.medium),
                       ),
                     ),
-                    child: (_joining || _reminderLoading)
+                    child: _joining
                         ? SizedBox(
                             width: 20,
                             height: 20,
