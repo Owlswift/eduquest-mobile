@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../network/dio_client.dart';
 import '../storage/token_storage.dart';
+import '../storage/settings_storage.dart';
 
 /// Wires the device up for push notifications: initializes Firebase,
 /// requests permission, and registers the FCM token with the backend
@@ -23,6 +24,7 @@ class PushRegistrationService {
 
   final _dio = DioClient().dio;
   final _storage = TokenStorage();
+  final _settings = SettingsStorage();
 
   bool _firebaseReady = false;
   bool _listening = false;
@@ -38,8 +40,12 @@ class PushRegistrationService {
   }
 
   /// Call after a successful login/register/session-restore. No-ops
-  /// quietly if Firebase isn't configured on this platform yet.
+  /// quietly if Firebase isn't configured on this platform yet, or if the
+  /// student turned push off in Settings (that preference persists across
+  /// app restarts, so this call can't silently re-enable it).
   Future<void> registerThisDevice() async {
+    if (!(await _settings.getPushEnabled())) return;
+
     await _ensureFirebase();
     if (!_firebaseReady) return;
 

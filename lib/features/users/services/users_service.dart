@@ -63,14 +63,18 @@ class UsersService {
         .toList();
   }
 
-  // ─── Update profile (classLevel, state, subjects) ────────────────────────────
+  // ─── Update profile (fullName, phone, classLevel, state, subjects) ──────────
 
   Future<Map<String, dynamic>> updateProfile({
+    String? fullName,
+    String? phone,
     String? classLevel,
     String? state,
     List<String>? subjects,
   }) async {
     final data = <String, dynamic>{};
+    if (fullName != null) data['fullName'] = fullName;
+    if (phone != null) data['phone'] = phone;
     if (classLevel != null) data['classLevel'] = classLevel;
     if (state != null) data['state'] = state;
     if (subjects != null) data['subjects'] = subjects;
@@ -81,6 +85,22 @@ class UsersService {
       options: await _authOptions(),
     );
     return response.data;
+  }
+
+  // ─── Change password (while logged in) ──────────────────────────────────────
+
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    await _dio.patch(
+      '/users/change-password',
+      data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      options: await _authOptions(),
+    );
+  }
+
+  // ─── Delete account ──────────────────────────────────────────────────────────
+
+  Future<void> deleteAccount() async {
+    await _dio.delete('/users/me', options: await _authOptions());
   }
 
   // ─── Claim welcome bonus ─────────────────────────────────────────────────────

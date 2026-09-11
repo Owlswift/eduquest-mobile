@@ -2,6 +2,10 @@
 class UserProfile {
   final String fullName;
   final String username;
+  final String email;
+  final String phone;
+  final String classLevel;
+  final String state;
   final int coins;
   final int xp;
   final int maxXp;
@@ -17,6 +21,10 @@ class UserProfile {
   const UserProfile({
     required this.fullName,
     this.username = '',
+    this.email = '',
+    this.phone = '',
+    this.classLevel = '',
+    this.state = '',
     required this.coins,
     required this.xp,
     required this.maxXp,
@@ -43,6 +51,10 @@ class UserProfile {
     return UserProfile(
       fullName: (json['fullName'] as String?) ?? '',
       username: (json['username'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      phone: (json['phone'] as String?) ?? '',
+      classLevel: (json['classLevel'] as String?) ?? '',
+      state: (json['state'] as String?) ?? '',
       coins: json['coins'] ?? 0,
       xp: json['xp'] ?? 0,
       maxXp: (json['maxXp'] ?? 0) == 0 ? 500 : json['maxXp'],

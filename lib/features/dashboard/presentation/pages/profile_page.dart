@@ -14,7 +14,11 @@ import '../../controllers/user_profile_provider.dart';
 import '../../models/subject_progress_entry.dart';
 import '../../models/user_profile.dart';
 import '../../../auth/controllers/auth_controller.dart';
+import '../../../certificates/presentation/pages/certificates_page.dart';
+import 'edit_profile_page.dart';
+import 'my_stats_page.dart';
 import 'rewards_page.dart';
+import 'settings_page.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -502,6 +506,53 @@ class _MiniStat extends StatelessWidget {
 
 // ─── Profile Menu ─────────────────────────────────────────────────────────────
 
+Future<void> _onMenuTap(BuildContext context, WidgetRef ref, String label) async {
+  switch (label) {
+    case 'Edit Profile':
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const EditProfilePage()),
+      );
+      return;
+    case 'My Stats':
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const MyStatsPage()),
+      );
+      return;
+    case 'My Rewards':
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const RewardsPage()),
+      );
+      return;
+    case 'My Certificates':
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CertificatesPage()),
+      );
+      return;
+    case 'Settings':
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const SettingsPage()),
+      );
+      return;
+    case 'Logout':
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(onPressed: () => ctx.pop(false), child: const Text('Cancel')),
+            TextButton(onPressed: () => ctx.pop(true), child: const Text('Logout')),
+          ],
+        ),
+      );
+      if (confirmed == true && context.mounted) {
+        await ref.read(authControllerProvider.notifier).logout();
+        if (context.mounted) context.go(AppRoutes.login);
+      }
+      return;
+  }
+}
+
 class _ProfileMenu extends ConsumerWidget {
   const _ProfileMenu();
 
@@ -561,39 +612,7 @@ class _ProfileMenu extends ConsumerWidget {
                           Icons.chevron_right_rounded,
                           color: AppColors.subtitle,
                         ),
-                  onTap: label == 'Logout'
-                      ? () async {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('Logout'),
-                              content: const Text('Are you sure you want to logout?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => ctx.pop(false),
-                                  child: const Text('Cancel'),
-                                ),
-                                TextButton(
-                                  onPressed: () => ctx.pop(true),
-                                  child: const Text('Logout'),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirmed == true && context.mounted) {
-                            await ref.read(authControllerProvider.notifier).logout();
-                            if (context.mounted) {
-                              context.go(AppRoutes.login);
-                            }
-                          }
-                        }
-                      : label == 'My Rewards'
-                          ? () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const RewardsPage(),
-                                ),
-                              )
-                          : () {},
+                  onTap: () => _onMenuTap(context, ref, label),
                 ),
               ),
               if (!isLast)
