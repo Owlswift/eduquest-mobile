@@ -380,6 +380,12 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isDone ? Colors.white : AppColors.primary,
                       foregroundColor: _isDone ? AppColors.primary : Colors.white,
+                      // "Joined" on an upcoming competition is a disabled
+                      // button (nothing to view yet) - without these,
+                      // ElevatedButton's default disabled style paints
+                      // over the white/blue look with theme grey.
+                      disabledBackgroundColor: Colors.white,
+                      disabledForegroundColor: AppColors.primary,
                       elevation: 0,
                       side: _isDone
                           ? const BorderSide(color: AppColors.primary, width: 1.5)
