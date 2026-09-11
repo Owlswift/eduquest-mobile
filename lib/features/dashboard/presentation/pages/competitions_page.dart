@@ -10,6 +10,7 @@ import '../../../../core/constants/app_radius.dart';
 import '../../../competitions/controllers/competitions_provider.dart';
 import '../../../competitions/models/competition.dart';
 import '../../../competitions/presentation/pages/competition_leaderboard_page.dart';
+import '../../../competitions/services/competition_reminder_store.dart';
 import '../../../competitions/services/competitions_service.dart';
 
 class CompetitionsPage extends ConsumerStatefulWidget {
@@ -160,6 +161,9 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
   late Timer _timer;
   late Duration _remaining;
   bool _joining = false;
+  bool _reminderSet = false;
+  bool _reminderLoading = false;
+  final _reminderStore = CompetitionReminderStore();
 
   @override
   void initState() {
@@ -170,6 +174,9 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
       setState(() {
         _remaining = widget.competition.endsAt.difference(DateTime.now());
       });
+    });
+    _reminderStore.isSet(widget.competition.id).then((set) {
+      if (mounted) setState(() => _reminderSet = set);
     });
   }
 
@@ -204,6 +211,39 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
         ),
       ),
     );
+  }
+
+  Future<void> _toggleReminder() async {
+    setState(() => _reminderLoading = true);
+    final nowSet = await _reminderStore.toggle(widget.competition.id);
+    if (!mounted) return;
+    setState(() {
+      _reminderSet = nowSet;
+      _reminderLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          nowSet
+              ? "Reminder set - we'll flag it here when \"${widget.competition.title}\" starts."
+              : 'Reminder cancelled.',
+        ),
+      ),
+    );
+  }
+
+  /// True once there's nothing left to *do* on this button - already
+  /// joined (view results instead) or a reminder is already set - which
+  /// gets the quieter white/outlined treatment instead of solid blue.
+  bool get _isDone => widget.competition.isOngoing
+      ? widget.competition.isJoined
+      : _reminderSet;
+
+  String get _buttonLabel {
+    if (!widget.competition.isOngoing) {
+      return _reminderSet ? 'Reminder Set ✓' : 'Notify Me';
+    }
+    return widget.competition.isJoined ? 'View Leaderboard' : 'Join Now';
   }
 
   @override
@@ -354,43 +394,40 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: _joining
+                    onPressed: (_joining || _reminderLoading)
                         ? null
                         : widget.competition.isOngoing
                             ? (widget.competition.isJoined
                                 ? _openLeaderboard
                                 : _join)
-                            : null, // "Notify Me" for upcoming - no notification system yet.
+                            : _toggleReminder,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: widget.competition.isJoined
-                          ? const Color(0xFF059669)
-                          : AppColors.primary,
+                      backgroundColor: _isDone ? Colors.white : AppColors.primary,
+                      foregroundColor: _isDone ? AppColors.primary : Colors.white,
                       elevation: 0,
+                      side: _isDone
+                          ? const BorderSide(color: AppColors.primary, width: 1.5)
+                          : BorderSide.none,
                       shape: RoundedRectangleBorder(
                         borderRadius:
                             BorderRadius.circular(AppRadius.medium),
                       ),
                     ),
-                    child: _joining
-                        ? const SizedBox(
+                    child: (_joining || _reminderLoading)
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  _isDone ? AppColors.primary : Colors.white),
                             ),
                           )
                         : Text(
-                            !widget.competition.isOngoing
-                                ? 'Notify Me'
-                                : widget.competition.isJoined
-                                    ? 'View Leaderboard'
-                                    : 'Join Now',
+                            _buttonLabel,
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 15,
-                              color: Colors.white,
                             ),
                           ),
                   ),
