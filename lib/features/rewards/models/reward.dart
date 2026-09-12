@@ -57,6 +57,41 @@ class RewardsCatalog {
   }
 }
 
+/// GET /rewards/history entry. Fulfillment (actually sending the
+/// airtime/data/etc.) is a manually-worked queue, not automated - `status`
+/// is what to show the student honestly instead of implying it's instant.
+class RewardRedemption {
+  final String id;
+  final String rewardId;
+  final String title;
+  final int coinCost;
+  final String status; // 'PENDING' | 'FULFILLED' | 'REJECTED'
+  final DateTime redeemedAt;
+  final DateTime? fulfilledAt;
+
+  const RewardRedemption({
+    required this.id,
+    required this.rewardId,
+    required this.title,
+    required this.coinCost,
+    required this.status,
+    required this.redeemedAt,
+    this.fulfilledAt,
+  });
+
+  factory RewardRedemption.fromJson(Map<String, dynamic> json) {
+    return RewardRedemption(
+      id: json['id'] ?? '',
+      rewardId: json['rewardId'] ?? '',
+      title: json['title'] ?? '',
+      coinCost: json['coinCost'] ?? 0,
+      status: json['status'] ?? 'PENDING',
+      redeemedAt: DateTime.tryParse(json['redeemedAt'] ?? '') ?? DateTime.now(),
+      fulfilledAt: json['fulfilledAt'] == null ? null : DateTime.tryParse(json['fulfilledAt']),
+    );
+  }
+}
+
 /// Icon/color per reward id - purely cosmetic, kept client-side since the
 /// server catalog has no notion of visuals. Falls back to a generic gift
 /// icon for any id it doesn't recognize (e.g. a reward added server-side

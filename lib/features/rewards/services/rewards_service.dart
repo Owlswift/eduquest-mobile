@@ -25,4 +25,10 @@ class RewardsService {
     );
     return (response.data as Map<String, dynamic>)['coins'] as int;
   }
+
+  Future<List<RewardRedemption>> getHistory() async {
+    final response = await _dio.get('/rewards/history', options: await _authOptions());
+    final List<dynamic> list = response.data;
+    return list.map((r) => RewardRedemption.fromJson(r as Map<String, dynamic>)).toList();
+  }
 }

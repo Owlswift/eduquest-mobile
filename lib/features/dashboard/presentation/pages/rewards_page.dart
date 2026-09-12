@@ -10,6 +10,7 @@ import '../../../../core/utils/responsive.dart';
 import '../../../rewards/controllers/rewards_provider.dart';
 import '../../../rewards/models/reward.dart';
 import '../../../rewards/services/rewards_service.dart';
+import '../../../rewards/presentation/pages/rewards_history_page.dart';
 import '../../controllers/refresh.dart';
 
 class RewardsPage extends ConsumerWidget {
@@ -71,7 +72,19 @@ class _RewardsBody extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 0),
-            child: Text('Rewards', style: AppTextStyles.title.copyWith(fontSize: context.rs(24))),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Rewards', style: AppTextStyles.title.copyWith(fontSize: context.rs(24))),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const RewardsHistoryPage()),
+                  ),
+                  icon: const Icon(Icons.history_rounded, size: 18),
+                  label: const Text('History'),
+                ),
+              ],
+            ),
           ),
         ),
         const SliverToBoxAdapter(child: Gap(16)),
@@ -257,10 +270,13 @@ class _RewardCardState extends ConsumerState<_RewardCard> {
     try {
       await RewardsService().redeem(reward.id);
       ref.invalidate(rewardsProvider);
+      ref.invalidate(rewardsHistoryProvider);
       invalidateUserStats(ref);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${reward.title} redeemed!')),
+          SnackBar(
+            content: Text('${reward.title} redeemed - pending delivery. Check History for status.'),
+          ),
         );
       }
     } catch (_) {

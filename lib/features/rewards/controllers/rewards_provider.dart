@@ -6,3 +6,7 @@ import '../services/rewards_service.dart';
 final rewardsProvider = FutureProvider<RewardsCatalog>((ref) async {
   return RewardsService().getRewards();
 });
+
+final rewardsHistoryProvider = FutureProvider<List<RewardRedemption>>((ref) async {
+  return RewardsService().getHistory();
+});
