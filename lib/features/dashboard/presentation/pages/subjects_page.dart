@@ -9,6 +9,7 @@ import '../../../../core/utils/responsive.dart';
 import '../../controllers/daily_summary_provider.dart';
 import '../../controllers/refresh.dart';
 import '../../controllers/subjects_provider.dart';
+import '../../controllers/user_profile_provider.dart';
 import '../../models/dashboard_models.dart';
 import '../../models/daily_summary.dart';
 import '../../../tutor/controllers/tutor_controller.dart';
@@ -136,9 +137,14 @@ Future<void> _openQuizPicker(BuildContext context, WidgetRef ref) async {
   );
 
   if (picked != null && context.mounted) {
+    final myClassLevel = ref.read(userProfileProvider).valueOrNull?.classLevel;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => QuizPlayPage(subjectId: picked.id, subjectName: picked.name),
+        builder: (_) => QuizPlayPage(
+          subjectId: picked.id,
+          subjectName: picked.name,
+          classLevel: (myClassLevel == null || myClassLevel.isEmpty) ? 'SS1' : myClassLevel,
+        ),
       ),
     );
   }
