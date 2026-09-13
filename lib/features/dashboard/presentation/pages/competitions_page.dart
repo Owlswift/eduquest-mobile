@@ -11,6 +11,8 @@ import '../../../competitions/controllers/competitions_provider.dart';
 import '../../../competitions/models/competition.dart';
 import '../../../competitions/presentation/pages/competition_leaderboard_page.dart';
 import '../../../competitions/services/competitions_service.dart';
+import '../../../challenges/presentation/pages/challenges_tab.dart';
+import '../../../challenges/presentation/pages/new_challenge_page.dart';
 
 class CompetitionsPage extends ConsumerStatefulWidget {
   const CompetitionsPage({super.key});
@@ -26,7 +28,8 @@ class _CompetitionsPageState extends ConsumerState<CompetitionsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() => setState(() {}));
   }
 
   @override
@@ -72,6 +75,7 @@ class _CompetitionsPageState extends ConsumerState<CompetitionsPage>
               tabs: const [
                 Tab(text: 'Ongoing'),
                 Tab(text: 'Upcoming'),
+                Tab(text: 'Challenges'),
               ],
             ),
           ),
@@ -105,11 +109,23 @@ class _CompetitionsPageState extends ConsumerState<CompetitionsPage>
               children: [
                 _CompetitionList(competitions: ongoing, isOngoing: true),
                 _CompetitionList(competitions: upcoming, isOngoing: false),
+                const ChallengesTab(),
               ],
             );
           },
         ),
       ),
+      floatingActionButton: _tabController.index == 2
+          ? FloatingActionButton.extended(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NewChallengePage()),
+              ),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Challenge', style: TextStyle(fontWeight: FontWeight.w700)),
+            )
+          : null,
     );
   }
 }

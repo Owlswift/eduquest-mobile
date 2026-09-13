@@ -60,6 +60,23 @@ class SubmittedAnswer {
       };
 }
 
+/// One topic tagged on a subject's question bank, with how many questions
+/// exist for it - powers the Challenges topic picker. A subject that
+/// isn't topic-tagged yet just returns an empty list.
+class TopicOption {
+  final String topic;
+  final int questionCount;
+
+  const TopicOption({required this.topic, required this.questionCount});
+
+  factory TopicOption.fromJson(Map<String, dynamic> json) {
+    return TopicOption(
+      topic: json['topic'] ?? '',
+      questionCount: json['questionCount'] ?? 0,
+    );
+  }
+}
+
 class AnswerOption {
   final String id;
   final String text;

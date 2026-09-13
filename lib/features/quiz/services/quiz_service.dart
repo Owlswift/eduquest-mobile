@@ -34,6 +34,21 @@ class QuizService {
     return questionsList.map((q) => QuestionModel.fromJson(q)).toList();
   }
 
+  /// Distinct topics tagged on a subject's question bank - powers the
+  /// Challenges topic picker.
+  Future<List<TopicOption>> getTopics({
+    required String subjectId,
+    String classLevel = 'SS1',
+  }) async {
+    final response = await _dio.get(
+      '/quiz/topics',
+      queryParameters: {'subjectId': subjectId, 'classLevel': classLevel},
+      options: await _authOptions(),
+    );
+    final List<dynamic> list = response.data;
+    return list.map((t) => TopicOption.fromJson(t)).toList();
+  }
+
   /// Reveal whether one already-answered question was right. Stateless -
   /// doesn't affect scoring (submitQuizResults grades independently).
   Future<QuizAnswerCheck> checkAnswer({

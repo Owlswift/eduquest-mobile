@@ -9,6 +9,7 @@ import '../../../../core/constants/app_radius.dart';
 import '../../controllers/notifications_provider.dart';
 import '../../models/app_notification.dart';
 import '../../services/notifications_service.dart';
+import '../../../challenges/presentation/pages/challenge_detail_page.dart';
 
 class NotificationsPage extends ConsumerWidget {
   const NotificationsPage({super.key});
@@ -97,14 +98,21 @@ class NotificationsPage extends ConsumerWidget {
               itemCount: notifications.length,
               itemBuilder: (_, i) {
                 final n = notifications[i];
+                final challengeId =
+                    n.type.startsWith('challenge_') ? (n.data?['challengeId'] as String?) : null;
                 return _NotificationTile(
                   notification: n,
-                  onTap: n.read
-                      ? null
-                      : () async {
-                          await NotificationsService().markRead(n.id);
-                          refresh();
-                        },
+                  onTap: () async {
+                    if (!n.read) {
+                      await NotificationsService().markRead(n.id);
+                      refresh();
+                    }
+                    if (challengeId != null && context.mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => ChallengeDetailPage(challengeId: challengeId)),
+                      );
+                    }
+                  },
                 );
               },
             );
@@ -130,6 +138,11 @@ class _NotificationTile extends StatelessWidget {
         return Icons.military_tech_rounded;
       case 'welcome_bonus':
         return Icons.celebration_rounded;
+      case 'challenge_received':
+      case 'challenge_accepted':
+      case 'challenge_completed':
+      case 'challenge_declined':
+        return Icons.sports_martial_arts_rounded;
       default:
         return Icons.notifications_rounded;
     }
