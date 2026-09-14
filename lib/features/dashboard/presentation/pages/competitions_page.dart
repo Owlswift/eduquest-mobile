@@ -177,6 +177,17 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
   late Duration _remaining;
   bool _joining = false;
 
+  /// Set once this card has asked for a refresh because its countdown hit
+  /// zero, and cleared again when new data arrives - so a competition that
+  /// *should* have flipped status only triggers one refetch per response
+  /// (see the tick below).
+  bool _refreshScheduled = false;
+  DateTime _lastAutoRefresh = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Poll no more than this often while the backend insists the competition
+  /// hasn't started yet, in case the device clock runs ahead of the server.
+  static const _autoRefreshCooldown = Duration(seconds: 30);
+
   /// Ongoing competitions count down to when they end; upcoming ones count
   /// down to when they start - joining early is allowed, so the countdown
   /// tells an already-joined student when things kick off.
@@ -189,10 +200,34 @@ class _CompetitionCardState extends ConsumerState<_CompetitionCard> {
     _remaining = _countdownTarget.difference(DateTime.now());
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() {
-        _remaining = _countdownTarget.difference(DateTime.now());
-      });
+      final now = DateTime.now();
+      final remaining = _countdownTarget.difference(now);
+      // The countdown ran out (upcoming -> started, or ongoing -> ended).
+      // The backend derives each competition's status from its start/end
+      // times at fetch time, so the stale list we're holding still says
+      // "upcoming" - refetch once so it flips to "ongoing" (or drops an
+      // ended one entirely). Without this, a completed countdown just
+      // sits at 00:00:00 in the wrong tab forever.
+      if (!now.isBefore(_countdownTarget) &&
+          !_refreshScheduled &&
+          now.difference(_lastAutoRefresh) >= _autoRefreshCooldown) {
+        _refreshScheduled = true;
+        _lastAutoRefresh = now;
+        ref.invalidate(competitionsProvider);
+      }
+      setState(() => _remaining = remaining);
     });
+  }
+
+  @override
+  void didUpdateWidget(_CompetitionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A rebuild means new data arrived (refresh, rejoin, manual retry).
+    // Re-arm the zero-countdown refresh so that if the backend still
+    // reported the old status - e.g. device clock ahead of the server -
+    // the next tick asks again instead of giving up after one attempt.
+    _refreshScheduled = false;
+    _remaining = _countdownTarget.difference(DateTime.now());
   }
 
   @override
