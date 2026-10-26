@@ -590,7 +590,7 @@ class _ManualSearchSection extends StatelessWidget {
                     ),
                     title: Text(candidate.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text(
-                      candidate.eligible ? '@${candidate.username}' : candidate.ineligibleReason ?? 'Not eligible',
+                      candidate.eligible ? candidate.classLevel : candidate.ineligibleReason ?? 'Not eligible',
                       style: candidate.eligible
                           ? null
                           : const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600),

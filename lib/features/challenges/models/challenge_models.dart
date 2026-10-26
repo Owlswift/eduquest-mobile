@@ -301,7 +301,7 @@ class ChallengeSuggestions {
 /// GET /users/search - a candidate opponent.
 class ChallengeOpponentCandidate {
   final String id;
-  final String username;
+  /// First name and surname initial only ("Ola L."): the server never sends another student's full name, username or photo.
   final String fullName;
   final String classLevel;
   /// False if this student can't actually be challenged right now (a
@@ -313,7 +313,6 @@ class ChallengeOpponentCandidate {
 
   const ChallengeOpponentCandidate({
     required this.id,
-    required this.username,
     required this.fullName,
     required this.classLevel,
     this.eligible = true,
@@ -323,7 +322,6 @@ class ChallengeOpponentCandidate {
   factory ChallengeOpponentCandidate.fromJson(Map<String, dynamic> json) {
     return ChallengeOpponentCandidate(
       id: json['id'] ?? '',
-      username: json['username'] ?? '',
       fullName: json['fullName'] ?? '',
       classLevel: json['classLevel'] ?? 'SS1',
       eligible: json['eligible'] ?? true,
