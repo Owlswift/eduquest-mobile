@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../core/network/dio_client.dart';
+import '../../../core/storage/token_storage.dart';
 
 class AuthService {
   final _dio = DioClient().dio;
@@ -21,6 +23,7 @@ class AuthService {
         'password': password,
       },
     );
+    await DioClient().saveSession(Map<String, dynamic>.from(response.data as Map));
     return response.data['accessToken'];
   }
 
@@ -31,6 +34,7 @@ class AuthService {
       '/auth/register',
       data: data,
     );
+    await DioClient().saveSession(Map<String, dynamic>.from(response.data as Map));
     return response.data['accessToken'];
   }
 
@@ -61,6 +65,7 @@ class AuthService {
       data: {'idToken': idToken},
     );
 
+    await DioClient().saveSession(Map<String, dynamic>.from(response.data as Map));
     return response.data['accessToken'];
   }
 
@@ -94,6 +99,23 @@ class AuthService {
   Future<Map<String, dynamic>> getProfile() async {
     final response = await _dio.get('/users/me');
     return response.data;
+  }
+
+  // ─── Sign out on the server ─────────────────────────────────────────────────
+
+  /// Ends this device's login on the server so its refresh token stops working.
+  /// Best effort: signing out locally must never wait on or fail because of it.
+  Future<void> logoutRemote() async {
+    try {
+      final refresh = await TokenStorage().getRefreshToken();
+      final token = await TokenStorage().getToken();
+      if (token == null) return;
+      await _dio.post(
+        '/auth/logout',
+        data: {'refreshToken': refresh},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+    } catch (_) {}
   }
 
   // ─── Sign out from Google ───────────────────────────────────────────────────

@@ -92,7 +92,12 @@ class UsersService {
   Future<void> changePassword(String currentPassword, String newPassword) async {
     await _dio.patch(
       '/users/change-password',
-      data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      data: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+        // So this device stays signed in while the others are signed out.
+        'refreshToken': await _storage.getRefreshToken(),
+      },
       options: await _authOptions(),
     );
   }

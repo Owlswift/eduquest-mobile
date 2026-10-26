@@ -184,6 +184,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> logout() async {
     await PushRegistrationService().unregisterThisDevice(); // needs the auth token - before it's cleared
+    await _service.logoutRemote(); // needs the tokens - before they are cleared
     await _service.googleSignOut(); // also clears Google session
     await _storage.deleteToken();
     state = const AuthState();
