@@ -87,6 +87,7 @@ class DashboardPage extends ConsumerWidget {
 
 String _greeting() {
   final h = DateTime.now().hour;
+  if (h < 5) return 'Good Night';
   if (h < 12) return 'Good Morning';
   if (h < 17) return 'Good Afternoon';
   return 'Good Evening';

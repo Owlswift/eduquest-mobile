@@ -73,17 +73,27 @@ class _NewChallengePageState extends ConsumerState<NewChallengePage> {
 
   Future<void> _pickSubject() async {
     final subjectsAsync = ref.read(subjectsProvider);
-    final subjects = subjectsAsync.valueOrNull;
-    if (subjects == null || subjects.isEmpty) {
+    final allSubjects = subjectsAsync.valueOrNull;
+    if (allSubjects == null || allSubjects.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Subjects are still loading - try again in a moment.')),
       );
       return;
     }
 
+    // JSS and SS subjects can share a display name (e.g. both "Business
+    // Studies") - only the "jss_"-prefixed id marks a JSS subject, since
+    // Subject has no first-class track field. Scope the list to the
+    // student's own track so JSS/SS duplicates don't both show up here.
+    final myClassLevel = ref.read(userProfileProvider).valueOrNull?.classLevel;
+    final isJss = (myClassLevel ?? 'SS1').startsWith('JSS');
+    final scoped = allSubjects.where((s) => s.id.startsWith('jss_') == isJss).toList();
+    final subjects = scoped.isNotEmpty ? scoped : allSubjects;
+
     final picked = await showModalBottomSheet<SubjectModel>(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),

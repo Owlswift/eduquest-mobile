@@ -62,6 +62,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 Container(
                   height: 140,
                   width: 140,
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(40),
@@ -73,11 +74,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.school_rounded,
-                    size: 80,
-                    color: AppColors.primary,
-                  ),
+                  child: Image.asset('assets/images/eduquest_logo.png'),
                 ),
 
                 const SizedBox(height: 40),

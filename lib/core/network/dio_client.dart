@@ -1,5 +1,16 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+// Override at build time for a real deployment, e.g.:
+//   flutter build ipa --dart-define=API_BASE_URL=https://api.eduquest.example/api
+// Defaults to the local dev machine's LAN IP so `flutter run` keeps working
+// unchanged during development. A release build must NOT ship with this
+// default - there is no production backend behind it.
+const _apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: "http://192.168.100.182:3050/api",
+);
 
 class DioClient {
   static final DioClient _instance = DioClient._internal();
@@ -11,7 +22,7 @@ class DioClient {
   DioClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: "http://192.168.100.182:3050/api",
+        baseUrl: _apiBaseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         headers: {
@@ -20,19 +31,22 @@ class DioClient {
       ),
     );
 
-    // Add logging interceptor
-    dio.interceptors.add(LogInterceptor(
-      request: true,
-      requestHeader: true,
-      requestBody: true,
-      responseHeader: true,
-      responseBody: true,
-      error: true,
-      logPrint: (obj) {
-        // ignore: avoid_print
-        print('🌐 API: $obj');
-      },
-    ));
+    // Verbose request/response logging (headers included, so this covers
+    // the bearer token) - dev-only, never in a release build.
+    if (kDebugMode) {
+      dio.interceptors.add(LogInterceptor(
+        request: true,
+        requestHeader: true,
+        requestBody: true,
+        responseHeader: true,
+        responseBody: true,
+        error: true,
+        logPrint: (obj) {
+          // ignore: avoid_print
+          print('🌐 API: $obj');
+        },
+      ));
+    }
 
     // Add token interceptor
     dio.interceptors.add(InterceptorsWrapper(

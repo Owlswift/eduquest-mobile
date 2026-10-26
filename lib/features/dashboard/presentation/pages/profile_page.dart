@@ -130,15 +130,14 @@ class _ProfileHeader extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 3),
                     ),
-                    child: Center(
-                      child: Text(
-                        profile.initials,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF2563EB),
-                        ),
-                      ),
+                    // Same illustration used for the avatar elsewhere (e.g.
+                    // the dashboard header) - was previously showing text
+                    // initials here instead, which looked like two
+                    // different accounts across screens.
+                    child: const CircleAvatar(
+                      radius: 45,
+                      backgroundImage:
+                          AssetImage('assets/illustrations/avatar_student.png'),
                     ),
                   ),
                   Container(

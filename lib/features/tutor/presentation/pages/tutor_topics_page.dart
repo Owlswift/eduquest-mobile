@@ -55,9 +55,26 @@ class _TutorTopicsPageState extends ConsumerState<TutorTopicsPage> {
   SubjectModel? _findInitialSubject(List<SubjectModel> subjects) {
     final wanted = widget.initialSubjectName?.trim().toLowerCase();
     if (wanted == null || wanted.isEmpty) return null;
-    for (final subject in subjects) {
+
+    // JSS and SS subjects can share an identical display name by design
+    // (e.g. both are called "Mathematics"), and Subject has no first-class
+    // track/level field - only the "jss_"-prefixed id convention marks a
+    // JSS subject. Restrict candidates to the student's own track first so
+    // name matching can't cross between them.
+    final isJss = _classLevel.startsWith('JSS');
+    final scoped = subjects.where((s) => s.id.startsWith('jss_') == isJss).toList();
+    final pool = scoped.isNotEmpty ? scoped : subjects;
+
+    // Exact match first - a substring match alone is unsafe since e.g.
+    // "Further Mathematics" contains "Mathematics", which would otherwise
+    // shadow the actual "Mathematics" subject whenever it happens to come
+    // first in the list.
+    for (final subject in pool) {
+      if (subject.name.trim().toLowerCase() == wanted) return subject;
+    }
+    for (final subject in pool) {
       final name = subject.name.trim().toLowerCase();
-      if (name == wanted || name.contains(wanted) || wanted.contains(name)) {
+      if (name.contains(wanted) || wanted.contains(name)) {
         return subject;
       }
     }
@@ -266,6 +283,28 @@ class _TutorTopicsPageState extends ConsumerState<TutorTopicsPage> {
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                       children: [
                         if (_error != null) _errorBanner(_error!),
+                        if (_error == null && grouped.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 60),
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.menu_book_outlined,
+                                  size: 48,
+                                  color: AppColors.subtitle,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  '${subject.name} lessons are coming soon.',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.subtitle,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         for (final entry in grouped.entries) ...[
                           Padding(
                             padding: const EdgeInsets.only(top: 12, bottom: 8),

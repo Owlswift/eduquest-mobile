@@ -15,7 +15,7 @@
 # scaled preview.
 
 set -euo pipefail
-cd "$(dirname "$0")/../../../.."   # -> apps/mobile
+cd "$(dirname "$0")/../../.."   # -> apps/mobile
 
 APP_DIR="$PWD"
 BUNDLE_ID="com.eduquest.mobile"
@@ -113,6 +113,48 @@ PY
   done
 }
 
+cmd_swipe() {
+  local udid="$1" x1="$2" y1="$3" x2="$4" y2="$5"
+  osascript -e 'tell application "Simulator" to activate'
+  sleep 0.4
+
+  local shot="/tmp/eduquest_mobile_tapcalib.png"
+  xcrun simctl io "$udid" screenshot "$shot" >/dev/null
+  local shot_w shot_h
+  shot_w=$(sips -g pixelWidth "$shot" | awk '/pixelWidth/{print $2}')
+  shot_h=$(sips -g pixelHeight "$shot" | awk '/pixelHeight/{print $2}')
+
+  local win
+  win=$(osascript -e 'tell application "System Events" to tell process "Simulator" to get {position, size} of window 1')
+  IFS=', ' read -r win_x win_y win_w win_h <<< "$win"
+
+  local mapped
+  mapped=$(python3 - "$win_x" "$win_y" "$win_w" "$win_h" "$shot_w" "$shot_h" "$x1" "$y1" "$x2" "$y2" <<'PY'
+import sys
+win_x, win_y, win_w, win_h, shot_w, shot_h, ox1, oy1, ox2, oy2 = map(float, sys.argv[1:11])
+scale = win_h / shot_h
+offset_x = (win_w - shot_w * scale) / 2
+def conv(ox, oy):
+    return win_x + offset_x + ox * scale, win_y + oy * scale
+cx1, cy1 = conv(ox1, oy1)
+cx2, cy2 = conv(ox2, oy2)
+print(f"{cx1:.0f} {cy1:.0f} {cx2:.0f} {cy2:.0f}")
+PY
+)
+  local cx1 cy1 cx2 cy2
+  read -r cx1 cy1 cx2 cy2 <<< "$mapped"
+  log "swiping window-space ($cx1,$cy1) -> ($cx2,$cy2) for screenshot-space ($x1,$y1) -> ($x2,$y2)"
+
+  # A single smooth drag reads as a scroll gesture to the simulator; a few
+  # intermediate dm: steps make it register reliably (a single dd:/du: pair
+  # with no motion in between is sometimes swallowed as a tap instead).
+  local midx1=$(( (cx1*3 + cx2) / 4 ))
+  local midy1=$(( (cy1*3 + cy2) / 4 ))
+  local midx2=$(( (cx1 + cx2*3) / 4 ))
+  local midy2=$(( (cy1 + cy2*3) / 4 ))
+  cliclick -w 30 dd:"$cx1","$cy1" dm:"$midx1","$midy1" dm:"$midx2","$midy2" dm:"$cx2","$cy2" du:"$cx2","$cy2"
+}
+
 # The app depends on the NestJS API + Ollama running locally. This repo
 # tends to accumulate stale `nest start --watch` processes across sessions;
 # more than one can end up bound to different ports with DIFFERENT code
@@ -139,9 +181,10 @@ case "${1:-}" in
   launch) cmd_launch "$2" ;;
   screenshot) cmd_screenshot "$2" "$3" ;;
   tap) cmd_tap "$2" "$3" "$4" ;;
+  swipe) cmd_swipe "$2" "$3" "$4" "$5" "$6" ;;
   backend-check) cmd_backend_check ;;
   *)
-    echo "usage: $0 {build|launch|screenshot|tap|backend-check} [args...]" >&2
+    echo "usage: $0 {build|launch|screenshot|tap|swipe|backend-check} [args...]" >&2
     exit 1
     ;;
 esac
