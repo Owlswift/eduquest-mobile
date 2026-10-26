@@ -1,5 +1,9 @@
 class QuestionModel {
   final String id;
+
+  /// The server-issued quiz session this question belongs to. Checking and
+  /// submitting answers only works against it.
+  final String sessionId;
   final String subjectId;
   final String questionText;
   final List<AnswerOption> options;
@@ -9,6 +13,7 @@ class QuestionModel {
 
   const QuestionModel({
     required this.id,
+    this.sessionId = '',
     required this.subjectId,
     required this.questionText,
     required this.options,
@@ -20,6 +25,7 @@ class QuestionModel {
   factory QuestionModel.fromJson(Map<String, dynamic> json) {
     return QuestionModel(
       id: json['id'] ?? '',
+      sessionId: json['sessionId'] ?? '',
       subjectId: json['subjectId'] ?? json['subject_id'] ?? '',
       questionText: json['questionText'] ?? json['question'] ?? '',
       options: (json['options'] as List<dynamic>?)
@@ -34,6 +40,7 @@ class QuestionModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'sessionId': sessionId,
       'subjectId': subjectId,
       'questionText': questionText,
       'options': options.map((opt) => opt.toJson()).toList(),

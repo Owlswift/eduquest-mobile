@@ -311,6 +311,7 @@ class PostRegNotifier extends Notifier<PostRegState> {
 
     try {
       final check = await _quizService.checkAnswer(
+        sessionId: question.sessionId,
         questionId: question.id,
         selectedOptionId: answerId,
       );
@@ -402,7 +403,10 @@ class PostRegNotifier extends Notifier<PostRegState> {
     );
 
     try {
-      final result = await _service.completeStarterChallenge(state.submittedAnswers);
+      final result = await _service.completeStarterChallenge(
+        state.questions.first.sessionId,
+        state.submittedAnswers,
+      );
       state = state.copyWith(
         loading: false,
         earnedCoins: result['earnedCoins'] ?? 0,

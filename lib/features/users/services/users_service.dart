@@ -116,11 +116,15 @@ class UsersService {
   // ─── Complete starter challenge ──────────────────────────────────────────────
 
   Future<Map<String, dynamic>> completeStarterChallenge(
+    String sessionId,
     List<SubmittedAnswer> answers,
   ) async {
     final response = await _dio.post(
       '/users/complete-challenge',
-      data: {'answers': answers.map((a) => a.toJson()).toList()},
+      data: {
+        'sessionId': sessionId,
+        'answers': answers.map((a) => a.toJson()).toList(),
+      },
       options: await _authOptions(),
     );
     return response.data;

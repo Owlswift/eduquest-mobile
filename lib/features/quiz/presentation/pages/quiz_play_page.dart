@@ -101,6 +101,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage> {
 
     try {
       final check = await _service.checkAnswer(
+        sessionId: question.sessionId,
         questionId: question.id,
         selectedOptionId: optionId,
       );
@@ -136,7 +137,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage> {
     });
     try {
       final result = await _service.submitQuizResults(
-        subjectId: widget.subjectId,
+        sessionId: _questions.first.sessionId,
         answers: _answers,
         timeTaken: _stopwatch.elapsed.inSeconds,
       );

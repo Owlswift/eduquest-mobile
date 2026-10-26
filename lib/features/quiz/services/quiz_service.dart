@@ -49,30 +49,33 @@ class QuizService {
     return list.map((t) => TopicOption.fromJson(t)).toList();
   }
 
-  /// Reveal whether one already-answered question was right. Stateless -
-  /// doesn't affect scoring (submitQuizResults grades independently).
+  /// Lock in the answer to one question of the current quiz session and
+  /// reveal whether it was right. The server keeps the first answer only, so
+  /// the revealed answer can't be re-submitted as a different pick.
   Future<QuizAnswerCheck> checkAnswer({
+    required String sessionId,
     required String questionId,
     required String selectedOptionId,
   }) async {
     final response = await _dio.post(
       '/quiz/questions/$questionId/check',
-      data: {'selectedOptionId': selectedOptionId},
+      data: {'sessionId': sessionId, 'selectedOptionId': selectedOptionId},
       options: await _authOptions(),
     );
     return QuizAnswerCheck.fromJson(response.data as Map<String, dynamic>);
   }
 
-  /// Submit a completed quiz for real, server-side grading.
+  /// Submit a completed quiz for real, server-side grading. A session can be
+  /// submitted once.
   Future<Map<String, dynamic>> submitQuizResults({
-    required String subjectId,
+    required String sessionId,
     required List<SubmittedAnswer> answers,
     required int timeTaken, // in seconds
   }) async {
     final response = await _dio.post(
       '/quiz/submit',
       data: {
-        'subjectId': subjectId,
+        'sessionId': sessionId,
         'answers': answers.map((a) => a.toJson()).toList(),
         'timeTaken': timeTaken,
       },
